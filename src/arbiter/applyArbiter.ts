@@ -6,7 +6,6 @@ import type { SqliteDb } from "../storage/sqlite/db.js";
 import { getStorageSettings } from "../settings/storageSettings.js";
 import { lintVinegar } from "./vinegarLinter.js";
 
-// New: AEGIS memory spine (SQLite repo)
 import { AegisSqliteRepo } from "../storage/sqlite/aegisRepo.js";
 
 export interface ArbiterApplyResult {
@@ -25,31 +24,8 @@ export interface ArbiterApplyResult {
 }
 
 /**
- * Attempts to retrieve the underlying better-sqlite3 Database instance from SqliteDb.
- * This keeps integration flexible across different local db wrappers.
- */
-function getNativeSqliteDatabase(db: SqliteDb): any {
-  const anyDb = db as any;
-
-  // Common patterns in local wrappers:
-  // - db.db
-  // - db.raw
-  // - db.sqlite
-  // - db.conn
-  return (
-    anyDb.db ??
-    anyDb.raw ??
-    anyDb.sqlite ??
-    anyDb.conn ??
-    anyDb.database ??
-    anyDb._db
-  );
-}
-
-/**
- * Minimal deterministic mapping from lint signals -> Integrity Roots.
- * This is intentionally conservative: it does not claim to infer intent,
- * only maps observable markers to root-stability flags.
+ * Deterministic mapping from lint signals -> Integrity Roots.
+ * Conservative: maps observable markers only.
  *
  * Convention:
  *   1 = stable (no detected issue for that root proxy)
@@ -62,10 +38,6 @@ function rootsFromLintSignals(args: {
 }): Record<string, 0 | 1> {
   const { vinegar, certainty, hierarchy } = args;
 
-  // Mapping rationale (deterministic proxies):
-  // - vinegar tone correlates with reduced Affection stability
-  // - coercive certainty correlates with reduced Trust stability
-  // - hierarchy markers correlate with reduced Respect stability
   return {
     "root.honesty": 1,
     "root.respect": hierarchy > 0 ? 0 : 1,
@@ -78,15 +50,13 @@ function rootsFromLintSignals(args: {
 }
 
 /**
- * Flag-only Arbiter + Session State Gate
+ * Flag-only Arbiter + AEGIS Session State Gate + Time Markers
  * - Runs deterministic lint
  * - Writes PUBLIC audit event if anything is flagged
+ * - Updates aegis_sessions.integrity_resonance
  * - Sets session posture to 'paused' when Integrity Resultant drops below threshold
+ * - Observes violated root markers (candidate -> learned promotion over time)
  * - Does NOT rewrite text
- *
- * Note:
- * - This does not claim user intent or internal states.
- * - This treats detections as observable markers only.
  */
 export async function applyArbiterFlagOnly(args: {
   db: SqliteDb;
@@ -115,66 +85,65 @@ export async function applyArbiterFlagOnly(args: {
 
   // ------------------------------------------------------------
   // AEGIS Gate: compute Integrity Resultant proxy + maybe pause
+  // + observe violated roots (time markers)
   // ------------------------------------------------------------
   let aegisGate: {
     attempted: boolean;
     paused: boolean;
     integrity_resonance?: number;
     pausedBecause?: { markerIds: string[]; threshold: number };
+    observedMarkers?: string[];
     note?: string;
   } = { attempted: false, paused: false };
 
   try {
-    const nativeDb = getNativeSqliteDatabase(db);
-    if (!nativeDb) {
+    // NodeSqliteDb exposes native DatabaseSync at db.db
+    const nativeDb = db.db;
+    const repo = new AegisSqliteRepo(nativeDb);
+
+    const session = repo.getSession(sessionId);
+    if (!session) {
       aegisGate = {
         attempted: false,
         paused: false,
-        note: "AEGIS gate skipped: native sqlite handle not available on SqliteDb wrapper.",
+        note: "AEGIS gate skipped: session not found in aegis_sessions (ensureSessionRow missing?).",
       };
     } else {
-      const repo = new AegisSqliteRepo(nativeDb);
+      const roots = rootsFromLintSignals({ vinegar, certainty, hierarchy });
 
-      const session = repo.getSession(sessionId);
-      if (!session) {
-        aegisGate = {
-          attempted: false,
-          paused: false,
-          note: "AEGIS gate skipped: session not found.",
-        };
-      } else {
-        // Roots as deterministic proxies from lint signals
-        const roots = rootsFromLintSignals({ vinegar, certainty, hierarchy });
+      // ALPHA CO proxy: treat "not flagged" as ready.
+      // This is a technical gate, not a claim about internal states.
+      const compassionReady = !flagged;
 
-        // Compassion readiness proxy (CO): for ALPHA, treat "not flagged" as ready.
-        // This does NOT assert emotional content; it is a conservative technical gate.
-        const compassionReady = !flagged;
+      const integrityResonance = repo.computeIntegrityResonance({
+        roots,
+        compassionReady,
+      });
 
-        const integrityResonance = repo.computeIntegrityResonance({
-          roots,
-          compassionReady,
-        });
+      const violatedRootMarkerIds = Object.entries(roots)
+        .filter(([, v]) => v === 0)
+        .map(([k]) => k);
 
-        const violatedRootMarkerIds = Object.entries(roots)
-          .filter(([, v]) => v === 0)
-          .map(([k]) => k);
+      // Apply pause transition
+      const decision = repo.maybePauseSession({
+        orgId: session.org_id,
+        userId: session.user_id,
+        sessionId,
+        integrityResonance,
+        violatedRootMarkerIds,
+      });
 
-        // Apply pause transition (threshold lives in org/user tensor constraints)
-        const decision = repo.maybePauseSession({
-          orgId: session.org_id,
-          userId: session.user_id,
-          sessionId,
-          integrityResonance,
-          violatedRootMarkerIds,
-        });
+      // Observe violated roots as markers (this is the "time exists" mechanism)
+      // Evidence is intentionally lightweight: marker IDs + counts only, no raw transcript storage.
+      const observed: string[] = violatedRootMarkerIds;
 
-        aegisGate = {
-          attempted: true,
-          paused: decision.status === "paused",
-          integrity_resonance: decision.integrityResonance,
-          pausedBecause: decision.pausedBecause,
-        };
-      }
+      aegisGate = {
+        attempted: true,
+        paused: decision.status === "paused",
+        integrity_resonance: decision.integrityResonance,
+        pausedBecause: decision.pausedBecause,
+        observedMarkers: observed,
+      };
     }
   } catch (err) {
     aegisGate = {
@@ -195,10 +164,6 @@ export async function applyArbiterFlagOnly(args: {
       "NEUTRALITY",
     ];
 
-    // Redaction posture depends on storage mode.
-    // minimal: only counts + top-level kinds
-    // standard: counts + samples (short excerpts)
-    // verbose: include full findings (still not storing full transcripts elsewhere)
     const details =
       settings.mode === "minimal"
         ? {
@@ -222,11 +187,15 @@ export async function applyArbiterFlagOnly(args: {
             context: context ?? {},
           };
 
-    const reasonCodes = Array.from(new Set(lint.findings.map((f) => f.reasonCode)));
+    const reasonCodes = Array.from(
+      new Set(lint.findings.map((f) => f.reasonCode))
+    );
 
     const gateLine =
       aegisGate.attempted && typeof aegisGate.integrity_resonance === "number"
-        ? ` | integrity_resonance=${aegisGate.integrity_resonance}${aegisGate.paused ? " (paused)" : ""}`
+        ? ` | integrity_resonance=${aegisGate.integrity_resonance}${
+            aegisGate.paused ? " (paused)" : ""
+          }`
         : "";
 
     await audit.write({

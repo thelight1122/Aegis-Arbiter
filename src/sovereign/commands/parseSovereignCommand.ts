@@ -2,6 +2,7 @@
 
 export type SovereignCommand =
   | { kind: "HELP" }
+  | { kind: "AEGIS_STATUS" }
   | { kind: "AUDIT"; limit: number; since?: string }
   | { kind: "BOOKCASE_LIST" }
   | { kind: "BOOKCASE_SHELVE"; label: string; content: string; unshelve?: string }
@@ -27,6 +28,10 @@ export function parseSovereignCommand(input: string): SovereignCommand | null {
 
   // /aegis help
   if (sub === "help") return { kind: "HELP" };
+
+  // /aegis status
+  // AEGIS Memory Spine visibility: pause + time + learned progression.
+  if (sub === "status") return { kind: "AEGIS_STATUS" };
 
   // /aegis audit --limit=50 --since=ISO
   if (sub === "audit") {

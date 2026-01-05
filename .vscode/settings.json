@@ -2,5 +2,7 @@
   "files.associations": {
     "*.ts": "typescript",
     "*.sql": "sqlite"
-  }
+  },
+  "typescript-config.files.exclude": ["node_modules/**"],
+  "typescript-config.ignore": ["**/node_modules/**"]
 }

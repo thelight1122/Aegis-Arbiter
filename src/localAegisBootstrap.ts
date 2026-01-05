@@ -8,26 +8,8 @@ import { Bookcase } from "./bookcase/bookcase.js";
 import { parseSovereignCommand } from "./sovereign/commands/parseSovereignCommand.js";
 import { handleSovereignCommand } from "./sovereign/commands/handleSovereignCommand.js";
 
-// AEGIS local memory (SQLite) bootstrap
-import { applyAegisSchema } from "./storage/sqlite/applyAegisSchema.js";
 import { ensureAegisSeed } from "./storage/sqlite/aegisSeed.js";
 import { AegisSqliteRepo } from "./storage/sqlite/aegisRepo.js";
-
-/**
- * Attempts to retrieve the underlying better-sqlite3 Database instance from SqliteDb.
- * This keeps integration flexible across different local db wrappers.
- */
-function getNativeSqliteDatabase(db: unknown): any {
-  const anyDb = db as any;
-  return (
-    anyDb.db ??
-    anyDb.raw ??
-    anyDb.sqlite ??
-    anyDb.conn ??
-    anyDb.database ??
-    anyDb._db
-  );
-}
 
 /**
  * POC entry function:
@@ -35,27 +17,19 @@ function getNativeSqliteDatabase(db: unknown): any {
  * - ensures session
  * - routes /aegis commands
  *
- * Wires into your chat loop and Ghost-Layer UI.
+ * You will wire this into your chat loop and Ghost-Layer UI.
  */
 export async function localAegisBootstrap() {
   const db = await openDb();
   await applyMigrations(db);
 
-  // Ensure local AEGIS schema + seeds exist (SQLite-only ALPHA)
-  const nativeDb = getNativeSqliteDatabase(db);
-  if (!nativeDb) {
-    throw new Error(
-      "AEGIS bootstrap could not access native sqlite database handle from SqliteDb wrapper."
-    );
-  }
+  // Native handle is node:sqlite DatabaseSync
+  const nativeDb = db.db;
 
-  applyAegisSchema(nativeDb);
-
-  // Create your existing session (your settings layer owns this)
+  // Your existing settings layer owns this session ID
   const sessionId = await ensureSession(db);
 
-  // Seed local org/user/tensors/roots if missing, then mirror session into aegis_sessions
-  // These IDs are local-only ALPHA defaults (demo-ready). Adjust later when auth/org creation exists.
+  // Local-only ALPHA identities (demo defaults)
   const orgId = "local-org";
   const userId = "local-user";
 
@@ -66,12 +40,9 @@ export async function localAegisBootstrap() {
     displayName: "Local Operator",
   });
 
-  const aegisRepo = new AegisSqliteRepo(nativeDb);
-  aegisRepo.ensureSessionRow({
-    sessionId,
-    orgId,
-    userId,
-  });
+  // Mirror the session into aegis_sessions (so Arbiter can pause it)
+  const repo = new AegisSqliteRepo(nativeDb);
+  repo.ensureSessionRow({ sessionId, orgId, userId });
 
   const audit = new AuditLogger(db);
   const bookcase = new Bookcase(db);
@@ -79,10 +50,7 @@ export async function localAegisBootstrap() {
   return async function handleUserInput(input: string) {
     const cmd = parseSovereignCommand(input);
     if (!cmd) {
-      return {
-        ok: true,
-        message: "Not a sovereign command. Pass to LLM pipeline.",
-      };
+      return { ok: true, message: "Not a sovereign command. Pass to LLM pipeline." };
     }
 
     return await handleSovereignCommand({

@@ -1,24 +1,23 @@
 {
-  "name": "aegis-arbiter",
-  "version": "0.1.0",
+  "name": "aegis-arbiter-ui",
   "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node --loader ts-node/esm src/runLocal.ts",
-    "build": "tsc",
-    "start": "node dist/runLocal.js"
+    "dev": "vite",
+    "build": "tsc -p tsconfig.app.json && vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.7.2"
-  },
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.4.1"
   }
 }
