@@ -1,6 +1,6 @@
 // /src/settings/storageSettings.ts
 
-import { SqliteDb } from "../storage/sqlite/db.js";
+import type { SqliteDb } from "../storage/sqlite/db.js";
 import crypto from "crypto";
 
 export type StorageMode = "minimal" | "standard" | "verbose";
@@ -10,7 +10,7 @@ export interface StorageSettings {
   auditPublicEnabled: boolean;
   auditPrivateEnabled: boolean;     // only active when debug unlocked
   retainDays: number;              // auto-purge horizon
-  storeFullTranscripts: boolean;    // OFF by default
+  storeFullTranscripts: boolean;   // OFF by default
 }
 
 const DEFAULT_SETTINGS: StorageSettings = {
@@ -20,6 +20,8 @@ const DEFAULT_SETTINGS: StorageSettings = {
   retainDays: 7,
   storeFullTranscripts: false,
 };
+
+const SETTINGS_KEY = "storage";
 
 export async function ensureSession(db: SqliteDb, sessionId?: string): Promise<string> {
   const id = sessionId ?? crypto.randomUUID();
@@ -48,15 +50,15 @@ export async function ensureSession(db: SqliteDb, sessionId?: string): Promise<s
 }
 
 export async function ensureSettings(db: SqliteDb): Promise<void> {
-  const existing = await db.get<{ key: string }>(
-    "SELECT key FROM settings WHERE key = ?",
-    "storage"
+  const existing = await db.get<{ setting_key: string }>(
+    "SELECT setting_key FROM settings WHERE setting_key = ?",
+    SETTINGS_KEY
   );
 
-  if (!existing?.key) {
+  if (!existing?.setting_key) {
     await db.run(
-      "INSERT INTO settings (key, value_json, updated_at) VALUES (?, ?, ?)",
-      "storage",
+      "INSERT INTO settings (setting_key, value_json, updated_at) VALUES (?, ?, ?)",
+      SETTINGS_KEY,
       JSON.stringify(DEFAULT_SETTINGS),
       new Date().toISOString()
     );
@@ -65,9 +67,10 @@ export async function ensureSettings(db: SqliteDb): Promise<void> {
 
 export async function getStorageSettings(db: SqliteDb): Promise<StorageSettings> {
   const row = await db.get<{ value_json: string }>(
-    "SELECT value_json FROM settings WHERE key = ?",
-    "storage"
+    "SELECT value_json FROM settings WHERE setting_key = ?",
+    SETTINGS_KEY
   );
+
   if (!row?.value_json) return DEFAULT_SETTINGS;
 
   try {
@@ -89,10 +92,10 @@ export async function setStorageMode(db: SqliteDb, mode: StorageMode): Promise<S
       : { ...current, mode, auditPublicEnabled: true, storeFullTranscripts: current.storeFullTranscripts, retainDays: Math.max(14, current.retainDays) };
 
   await db.run(
-    "UPDATE settings SET value_json = ?, updated_at = ? WHERE key = ?",
+    "UPDATE settings SET value_json = ?, updated_at = ? WHERE setting_key = ?",
     JSON.stringify(next),
     new Date().toISOString(),
-    "storage"
+    SETTINGS_KEY
   );
 
   return next;
@@ -109,10 +112,10 @@ export async function setDebugUnlocked(db: SqliteDb, sessionId: string, unlocked
   const next = { ...current, auditPrivateEnabled: unlocked };
 
   await db.run(
-    "UPDATE settings SET value_json = ?, updated_at = ? WHERE key = ?",
+    "UPDATE settings SET value_json = ?, updated_at = ? WHERE setting_key = ?",
     JSON.stringify(next),
     new Date().toISOString(),
-    "storage"
+    SETTINGS_KEY
   );
 }
 

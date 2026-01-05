@@ -1,7 +1,7 @@
 // /src/bookcase/bookcase.ts
 
 import crypto from "crypto";
-import { SqliteDb } from "../storage/sqlite/db.js";
+import type { SqliteDb } from "../storage/sqlite/db.js";
 
 export interface BookcaseItem {
   id: string;

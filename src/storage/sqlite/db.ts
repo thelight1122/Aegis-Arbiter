@@ -1,30 +1,56 @@
 // /src/storage/sqlite/db.ts
 
-import path from "path";
-import fs from "fs";
-import { open, Database } from "sqlite";
-import sqlite3 from "sqlite3";
+import fs from "node:fs";
+import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import type { SQLInputValue } from "node:sqlite";
 
-export type SqliteDb = Database<sqlite3.Database, sqlite3.Statement>;
+export type SqliteDb = NodeSqliteDb;
 
-export function resolveDbPath(baseDir?: string): string {
-  const root = baseDir ?? process.cwd();
-  const dataDir = path.join(root, "data");
-  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-  return path.join(dataDir, "aegis-local.sqlite");
+class NodeSqliteDb {
+  public readonly db: DatabaseSync;
+
+  constructor(filename: string) {
+    const dir = path.dirname(filename);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    this.db = new DatabaseSync(filename);
+
+    // Pragmas for sane local behavior
+    this.db.exec("PRAGMA journal_mode = WAL;");
+    this.db.exec("PRAGMA foreign_keys = ON;");
+  }
+
+  async exec(sql: string): Promise<void> {
+    this.db.exec(sql);
+  }
+
+  async run(sql: string, ...params: SQLInputValue[]): Promise<void> {
+    const stmt = this.db.prepare(sql);
+    stmt.run(...params);
+  }
+
+  async get<T>(sql: string, ...params: SQLInputValue[]): Promise<T | undefined> {
+    const stmt = this.db.prepare(sql);
+    const row = stmt.get(...params) as T | undefined;
+    return row;
+  }
+
+  async all<T>(sql: string, ...params: SQLInputValue[]): Promise<T[]> {
+    const stmt = this.db.prepare(sql);
+    const rows = stmt.all(...params) as T[] | undefined;
+    return rows ?? [];
+  }
+
+  async close(): Promise<void> {
+    this.db.close();
+  }
 }
 
-export async function openDb(dbPath?: string): Promise<SqliteDb> {
-  const filename = dbPath ?? resolveDbPath();
-  const db = await open({
-    filename,
-    driver: sqlite3.Database,
-  });
-
-  // Safety + concurrency defaults.
-  await db.exec("PRAGMA journal_mode = WAL;");
-  await db.exec("PRAGMA foreign_keys = ON;");
-  await db.exec("PRAGMA busy_timeout = 3000;");
-
-  return db;
+export async function openDb(): Promise<SqliteDb> {
+  // Stable location for local POC db
+  const dbPath = path.join(process.cwd(), "data", "aegis-local.sqlite");
+  return new NodeSqliteDb(dbPath);
 }

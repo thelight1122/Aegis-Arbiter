@@ -3,7 +3,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { SqliteDb } from ".//db.js";
+import type { SqliteDb } from "./db.js";
 
 function sha1(input: string): string {
   return crypto.createHash("sha1").update(input, "utf8").digest("hex");

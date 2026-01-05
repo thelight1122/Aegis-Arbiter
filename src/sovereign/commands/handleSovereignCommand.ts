@@ -1,9 +1,9 @@
 // /src/sovereign/commands/handleSovereignCommand.ts
 
-import { SqliteDb } from "../../storage/sqlite/db.js";
+import type { SqliteDb } from "../../storage/sqlite/db.js";
 import { AuditLogger } from "../../audit/auditLogger.js";
 import { Bookcase } from "../../bookcase/bookcase.js";
-import { SovereignCommand } from "./parseSovereignCommand.js";
+import type { SovereignCommand } from "./parseSovereignCommand.js";
 import {
   getStorageSettings,
   setStorageMode,

@@ -1,8 +1,8 @@
 // /src/audit/auditLogger.ts
 
 import crypto from "crypto";
-import { SqliteDb } from "../storage/sqlite/db.js";
-import { AuditEvent } from "./auditTypes.js";
+import type { SqliteDb } from "../storage/sqlite/db.js";
+import type { AuditEvent } from "./auditTypes.js";
 
 function uuid(): string {
   return crypto.randomUUID();
