@@ -1,4 +1,6 @@
-import { spawn } from "node:child_process";
+// server/src/cliRunner.ts
+import type { Analysis } from "./analyzer.js";
+import { analyzeText } from "./analyzer.js";
 
 type RunCliInput = {
   mode: "rbc" | "arbiter" | "lint";
@@ -6,81 +8,20 @@ type RunCliInput = {
   notepad: string;
 };
 
-function parseJsonLoose(stdout: string): unknown {
-  // CLI might print extra lines. We try:
-  // 1) direct JSON parse
-  // 2) locate first "{" and last "}" and parse substring
-  const s = stdout.trim();
-  try {
-    return JSON.parse(s);
-  } catch {}
-
-  const i = s.indexOf("{");
-  const j = s.lastIndexOf("}");
-  if (i >= 0 && j > i) {
-    const sub = s.slice(i, j + 1);
-    try {
-      return JSON.parse(sub);
-    } catch {}
-  }
-
-  return { raw: stdout };
+function composeInput(prompt: string, notepad: string): string {
+  const p = (prompt ?? "").toString();
+  const n = (notepad ?? "").toString();
+  return `PROMPT:\n${p}\n\nNOTEPAD:\n${n}\n`;
 }
 
-export async function runAegisCli(input: RunCliInput): Promise<unknown> {
-  // Point this at your real built CLI.
-  // Example:
-  //   AEGIS_CLI_PATH=dist/cli.js
-  //   AEGIS_CWD=/absolute/path/to/aegis-arbiter
-  const cliPath = process.env.AEGIS_CLI_PATH ?? "dist/cli.js";
-  const cwd = process.env.AEGIS_CWD ?? process.cwd();
+function mapMode(mode: RunCliInput["mode"]): { rbc: boolean; arbiter: boolean; lint: boolean } {
+  if (mode === "arbiter") return { rbc: false, arbiter: true, lint: false };
+  if (mode === "lint") return { rbc: false, arbiter: false, lint: true };
+  return { rbc: true, arbiter: false, lint: false };
+}
 
-  // Mode mapping to your CLI flags (adjust if your CLI uses different flags)
-  const modeFlag =
-    input.mode === "rbc" ? "--rbc" :
-    input.mode === "arbiter" ? "--arbiter" :
-    "--lint";
-
-  // We pass combined text via stdin (simple, robust)
-  const stdinPayload =
-    `PROMPT:\n${input.prompt}\n\nNOTEPAD:\n${input.notepad}\n`;
-
-  const args = [
-    cliPath,
-    modeFlag,
-    "--out",
-    "telemetry"
-  ];
-
-  // Run as: node dist/cli.js --rbc --out telemetry
-  const child = spawn(process.execPath, args, {
-    cwd,
-    stdio: ['pipe', 'pipe', 'pipe']
-  });
-
-  let stdout = '';
-  let stderr = '';
-
-  child.stdout?.on('data', (data) => {
-    stdout += data.toString();
-  });
-
-  child.stderr?.on('data', (data) => {
-    stderr += data.toString();
-  });
-
-  child.stdin?.write(stdinPayload);
-  child.stdin?.end();
-
-  return new Promise((resolve, reject) => {
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolve(parseJsonLoose(stdout));
-      } else {
-        reject(new Error(`CLI failed: ${stderr}`));
-      }
-    });
-
-    child.on('error', reject);
-  });
+export async function runAegisCli(input: RunCliInput): Promise<Analysis> {
+  const text = composeInput(input.prompt, input.notepad);
+  const flags = mapMode(input.mode);
+  return analyzeText(text, flags);
 }

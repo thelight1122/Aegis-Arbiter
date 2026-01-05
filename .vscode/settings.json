@@ -1,8 +1,19 @@
 {
-  "files.associations": {
-    "*.ts": "typescript",
-    "*.sql": "sqlite"
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+  "typescript.tsserver.exclude": ["**/node_modules/**"],
+
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/.git/**": true
   },
-  "typescript-config.files.exclude": ["node_modules/**"],
-  "typescript-config.ignore": ["**/node_modules/**"]
+
+  "search.exclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/build/**": true
+  },
+
+  "webhint.enable": false
 }

@@ -3,6 +3,16 @@
     "development"
   ],
   "hints": {
-    "no-inline-styles": "off"
+    "no-inline-styles": "off",
+    "typescript-config/is-valid": "off",
+    "typescript-config/strict": "off",
+    "typescript-config/consistent-casing": "off"
+  },
+  "connector": {
+    "options": {
+      "ignorePattern": [
+        "node_modules/**"
+      ]
+    }
   }
 }

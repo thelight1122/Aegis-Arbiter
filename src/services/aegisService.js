@@ -1,10 +1,4 @@
-/**
- * Demo stub: Replace this with real wiring to your CLI or server.
- * The UI compiles cleanly regardless.
- */
 export async function runAegisAnalysis(input, settings) {
-    // Simulate latency
-    await new Promise((r) => setTimeout(r, 150));
     const trimmed = input.trim();
     if (!trimmed) {
         return {
@@ -13,19 +7,44 @@ export async function runAegisAnalysis(input, settings) {
             json: { flagged: false, findings: [] }
         };
     }
-    // Fake “flagging” for demo: detect obviously forceful words
-    const forceWords = ["must", "never", "always", "do this now", "listen closely"];
-    const hit = forceWords.some((w) => trimmed.toLowerCase().includes(w));
-    return {
-        flagged: hit,
-        summary: hit
-            ? `Flagged in ${settings.mode} mode (demo heuristic).`
-            : `Clean in ${settings.mode} mode (demo heuristic).`,
-        json: {
-            mode: settings.mode,
-            flagged: hit,
-            length: trimmed.length,
-            timestamp: new Date().toISOString()
-        }
+    const payload = {
+        mode: settings.mode,
+        prompt: trimmed,
+        notepad: ""
     };
+    const res = await fetch("http://localhost:8787/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    // Try to parse JSON even on errors (server may return useful details)
+    let data = null;
+    try {
+        data = await res.json();
+    }
+    catch {
+        // ignore
+    }
+    if (!res.ok) {
+        const msg = (data && (data.error || data.message || data.detail)) ||
+            `Server error (${res.status})`;
+        throw new Error(msg);
+    }
+    // Normalize to your UI's AnalysisResult shape
+    // Expecting server to return something like { flagged, counts, score, findings, notes, ... }
+    const flagged = Boolean(data?.json?.flagged ?? data?.flagged);
+
+const summary =
+  typeof data?.summary === "string"
+    ? data.summary
+    : flagged
+    ? `FLAGGED — ${settings.mode} mode`
+    : `CLEAN — ${settings.mode} mode`;
+
+return {
+  flagged,
+  summary,
+  json: data?.json ?? data
+};
+
 }

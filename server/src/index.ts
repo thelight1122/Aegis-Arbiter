@@ -1,27 +1,43 @@
+// server/src/index.ts
 import express from "express";
 import cors from "cors";
-import type { Request, Response } from "express";
-import type { AnalyzeRequest, AnalyzeResponse, PingResponse } from "./types.js";
 import { runAegisCli } from "./cliRunner.js";
 
 const app = express();
+
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 
-app.get("/api/ping", (_req: Request, res: Response) => {
-  const payload: PingResponse = {
+app.get("/api/ping", (_req, res) => {
+  res.json({
     ok: true,
     status: "ready",
-    detail: process.env.AEGIS_CLI_PATH ? "CLI configured" : "CLI path not set (using default dist/cli.js)",
-    timestamp: new Date().toISOString()
-  };
-  res.json(payload);
+    detail: "In-process analyzer active (no external CLI required).",
+    timestamp: new Date().toISOString(),
+  });
 });
 
-app.post("/api/analyze", async (req: Request, res: Response) => {
-  const body = req.body as Partial<AnalyzeRequest>;
+function buildSummary(json: any): string {
+  const mode = json?.mode ?? "rbc";
+  const flagged = Boolean(json?.flagged);
 
-  const mode = body.mode ?? "rbc";
+  const total = json?.score?.total;
+  const findingsCount = Array.isArray(json?.findings) ? json.findings.length : 0;
+
+  const base = flagged ? "FLAGGED" : "CLEAN";
+  const parts: string[] = [];
+
+  parts.push(`${base} — ${mode} mode`);
+
+  if (typeof total === "number") parts.push(`score=${total}`);
+  parts.push(`findings=${findingsCount}`);
+
+  return parts.join(" | ");
+}
+
+app.post("/api/analyze", async (req, res) => {
+  const body = req.body ?? {};
+  const mode = (body.mode ?? "rbc") as "rbc" | "arbiter" | "lint";
   const prompt = (body.prompt ?? "").toString();
   const notepad = (body.notepad ?? "").toString();
 
@@ -30,31 +46,28 @@ app.post("/api/analyze", async (req: Request, res: Response) => {
   try {
     const json = await runAegisCli({ mode, prompt, notepad });
 
-    const out: AnalyzeResponse = {
+    res.json({
       ok: true,
       mode,
-      summary: `OK — processed in ${Date.now() - start}ms (via CLI).`,
+      summary: buildSummary(json),
       json,
       timestamp: new Date().toISOString(),
-      elapsed_ms: Date.now() - start
-    };
-
-    res.json(out);
+      elapsed_ms: Date.now() - start,
+    });
   } catch (err: any) {
-    const out: AnalyzeResponse = {
+    res.status(500).json({
       ok: false,
       mode,
-      summary: "Failed to run CLI.",
+      summary: "Failed to run in-process analyzer.",
       json: { error: err?.message ?? String(err) },
       timestamp: new Date().toISOString(),
-      elapsed_ms: Date.now() - start
-    };
-
-    res.status(500).json(out);
+      elapsed_ms: Date.now() - start,
+    });
   }
 });
 
 const port = Number(process.env.PORT ?? 8787);
+
 app.listen(port, () => {
   // eslint-disable-next-line no-console
   console.log(`[aegis-arbiter-server] listening on http://localhost:${port}`);

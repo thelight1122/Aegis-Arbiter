@@ -1,17 +1,18 @@
 import type { AnalysisResult, ToolSettings } from "../types.js";
 
-/**
- * Demo stub: Replace this with real wiring to your CLI or server.
- * The UI compiles cleanly regardless.
- */
+type AnalyzeRequest = {
+  mode: ToolSettings["mode"];
+  prompt: string;
+  notepad?: string;
+};
+
 export async function runAegisAnalysis(
   input: string,
-  settings: ToolSettings
+  settings: ToolSettings,
+  notepad: string = ""
 ): Promise<AnalysisResult> {
-  // Simulate latency
-  await new Promise((r) => setTimeout(r, 150));
-
   const trimmed = input.trim();
+
   if (!trimmed) {
     return {
       flagged: false,
@@ -20,20 +21,56 @@ export async function runAegisAnalysis(
     };
   }
 
-  // Fake “flagging” for demo: detect obviously forceful words
-  const forceWords = ["must", "never", "always", "do this now", "listen closely"];
-  const hit = forceWords.some((w) => trimmed.toLowerCase().includes(w));
+  const payload: AnalyzeRequest = {
+    mode: settings.mode,
+    prompt: trimmed,
+    notepad
+  };
+
+  const res = await fetch("http://localhost:8787/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch {
+    // ignore parse errors
+  }
+
+  if (!res.ok) {
+    const msg =
+      (data && (data.error || data.message || data.detail)) ||
+      `Server error (${res.status})`;
+    throw new Error(msg);
+  }
+
+  /**
+   * Server envelope shape:
+   * {
+   *   ok,
+   *   mode,
+   *   summary,
+   *   json: { flagged, counts, score, findings, notes, ... },
+   *   timestamp,
+   *   elapsed_ms
+   * }
+   */
+  const analyzer = data?.json ?? data;
+  const flagged = Boolean(analyzer?.flagged);
+
+  const summary =
+    typeof data?.summary === "string"
+      ? data.summary
+      : flagged
+      ? `FLAGGED — ${settings.mode} mode`
+      : `CLEAN — ${settings.mode} mode`;
 
   return {
-    flagged: hit,
-    summary: hit
-      ? `Flagged in ${settings.mode} mode (demo heuristic).`
-      : `Clean in ${settings.mode} mode (demo heuristic).`,
-    json: {
-      mode: settings.mode,
-      flagged: hit,
-      length: trimmed.length,
-      timestamp: new Date().toISOString()
-    }
+    flagged,
+    summary,
+    json: analyzer
   };
 }
