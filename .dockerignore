@@ -1,0 +1,10 @@
+# FILE: .dockerignore
+**/node_modules
+**/dist
+**/.vite
+**/.cache
+**/.DS_Store
+**/*.log
+.git
+.gitignore
+.vscode

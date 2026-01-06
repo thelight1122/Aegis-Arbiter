@@ -1,0 +1,23 @@
+# FILE: docker-compose.yml
+services:
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=8787
+    expose:
+      - "8787"
+
+  web:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+      args:
+        # Build-time env for Vite (used if your UI reads import.meta.env.VITE_API_BASE_URL)
+        VITE_API_BASE_URL: /api
+    ports:
+      - "8080:80"
+    depends_on:
+      - api

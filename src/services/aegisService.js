@@ -1,4 +1,4 @@
-export async function runAegisAnalysis(input, settings) {
+export async function runAegisAnalysis(input, settings, notepad = "") {
     const trimmed = input.trim();
     if (!trimmed) {
         return {
@@ -10,41 +10,46 @@ export async function runAegisAnalysis(input, settings) {
     const payload = {
         mode: settings.mode,
         prompt: trimmed,
-        notepad: ""
+        notepad
     };
     const res = await fetch("http://localhost:8787/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
     });
-    // Try to parse JSON even on errors (server may return useful details)
     let data = null;
     try {
         data = await res.json();
     }
     catch {
-        // ignore
+        // ignore parse errors
     }
     if (!res.ok) {
         const msg = (data && (data.error || data.message || data.detail)) ||
             `Server error (${res.status})`;
         throw new Error(msg);
     }
-    // Normalize to your UI's AnalysisResult shape
-    // Expecting server to return something like { flagged, counts, score, findings, notes, ... }
-    const flagged = Boolean(data?.json?.flagged ?? data?.flagged);
-
-const summary =
-  typeof data?.summary === "string"
-    ? data.summary
-    : flagged
-    ? `FLAGGED — ${settings.mode} mode`
-    : `CLEAN — ${settings.mode} mode`;
-
-return {
-  flagged,
-  summary,
-  json: data?.json ?? data
-};
-
+    /**
+     * Server envelope shape:
+     * {
+     *   ok,
+     *   mode,
+     *   summary,
+     *   json: { flagged, counts, score, findings, notes, ... },
+     *   timestamp,
+     *   elapsed_ms
+     * }
+     */
+    const analyzer = data?.json ?? data;
+    const flagged = Boolean(analyzer?.flagged);
+    const summary = typeof data?.summary === "string"
+        ? data.summary
+        : flagged
+            ? `FLAGGED — ${settings.mode} mode`
+            : `CLEAN — ${settings.mode} mode`;
+    return {
+        flagged,
+        summary,
+        json: analyzer
+    };
 }
