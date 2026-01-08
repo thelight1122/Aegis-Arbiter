@@ -1,14 +1,22 @@
 # FILE: docker-compose.yml
+version: "3.8"
+
 services:
   api:
     build:
       context: ./server
       dockerfile: Dockerfile
     environment:
-      - NODE_ENV=production
-      - PORT=8787
+      NODE_ENV: production
+      PORT: 8787
     expose:
       - "8787"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   web:
     build:
@@ -20,4 +28,28 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  kernel:
+    build: .
+    ports:
+      - "8788:8787"
+    volumes:
+      - aegis_data:/opt/aegis-kernel/storage/sqlite
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    # Fulfills AXIOM_5_AWARENESS through logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+
+volumes:
+  aegis_data:
+    driver: local

@@ -7,10 +7,15 @@ import { PromotionGate } from "./evolution/promotionGate.js";
 import { PrismGate } from "./analysis/prismGate.js";
 import { ReframerService } from "./analysis/reframerServices.js";
 import { SelfAuditService } from "./analysis/selfAuditService.js";
+import { TelemetryService } from "./analysis/telemetryService.js";
+import { LensMonitor } from "./analysis/lensMonitor.js";
+import { FlowCalculator } from "./flowCalculator.js";
 import { BookcaseService } from "./storage/bookcaseService.js";
 import { AuditBridge } from "./storage/auditBridge.js";
 import { RecoveryService } from "./analysis/recoveryServices.js";
 import { ContextAnchorService } from "./storage/contextAnchor.js";
+import { witnessEmitter } from "../witness.js";
+import { ResetService } from "./storage/resetServices.js";
 
 /**
  * The ArbiterOrchestrator is the integration layer.
@@ -21,6 +26,7 @@ export class ArbiterOrchestrator {
   private auditBridge: AuditBridge;
   private recovery: RecoveryService;
   private anchorService: ContextAnchorService;
+  private resetService: ResetService;
 
   constructor(
     private repo: TensorRepository,
@@ -31,6 +37,7 @@ export class ArbiterOrchestrator {
     this.auditBridge = new AuditBridge(db);
     this.recovery = new RecoveryService(db);
     this.anchorService = new ContextAnchorService(repo);
+    this.resetService = new ResetService(db);
   }
 
   /**
@@ -120,10 +127,32 @@ export class ArbiterOrchestrator {
       }
     }
 
+    const lensStatus = LensMonitor.evaluate(ptTensor);
+    const flow = FlowCalculator.calculate(
+      {
+        physical: lensStatus.physical,
+        emotional: lensStatus.emotional,
+        mental: lensStatus.mental,
+        spiritual: lensStatus.spiritual
+      },
+      delta
+    );
+
+    // 8. WITNESS: The Glass Gate Broadcast
+    const telemetry = TelemetryService.compile(
+      flow,
+      lensStatus,
+      ptTensor.state.labels.axiom_tags
+    );
+
+    // Broadcast the internal monologue to any connected Witness Streams
+    witnessEmitter.emit("resonance_event", telemetry);
+
     // Return the multidimensional response
     return {
       status: snapshot.resonance_status,
       delta: delta,
+      telemetry: telemetry,
       ids,
       findings: analysis.findings
     };
@@ -144,6 +173,19 @@ export class ArbiterOrchestrator {
       status: "stable",
       notice: "Recovery complete. AXIOM_4_FLOW restored.",
       delta: 0.0 // Reset delta for the restart
+    };
+  }
+
+  /**
+   * Resets the interaction field to clear AXIOM_2_EXTREMES.
+   */
+  async fullReset(sessionId: string) {
+    const result = await this.resetService.reset(sessionId);
+
+    return {
+      status: "rested",
+      purged: result.purged_count,
+      notice: "Axiomatic Reset complete. Interaction field restored to AXIOM_1_BALANCE."
     };
   }
 }
