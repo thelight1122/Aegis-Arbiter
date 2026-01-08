@@ -1,12 +1,18 @@
-import { AegisTensor } from "../tensor";
-import { TensorRepository } from "../storage/tensorRepository";
-import { getVectorDb } from "../storage/vectorDb";
+import type { AegisTensor } from "../tensor.js";
+import type { TensorRepository } from "../storage/tensorRepository.js";
+import { getVectorDb } from "../storage/vectorDb.js";
 
 // Define the structure of the snapshot
 export interface AlignmentSnapshot {
     resonance_status: "aligned" | "misaligned" | "critical";
     equilibrium_delta: number;
-    // Add other relevant properties
+    suggested_axiom_tags: string[];
+    drivers: {
+        drift_risk: number;
+        spine_coherence: number;
+        current_coherence: number;
+    };
+    baseline_used: boolean;
 }
 
 /**
@@ -35,7 +41,12 @@ export class ResonanceService {
             return 0;
         }
 
-        const peerVector = await vectorDb.createVector(ptTensor.state.payload.text);
+        const text = ptTensor.state.payload.text ?? ptTensor.state.payload.summary;
+        if (!text) {
+            return 0;
+        }
+
+        const peerVector = await vectorDb.createVector(text);
         return await vectorDb.compareVectors(spineVector, peerVector);
     }
 
@@ -51,9 +62,18 @@ export class ResonanceService {
         // In a real implementation, this would involve a more complex calculation
         // based on the history of the conversation.
         const delta = Math.random();
+        const drivers = {
+            drift_risk: delta,
+            spine_coherence: Math.max(0, 1 - delta),
+            current_coherence: Math.max(0, 1 - delta / 2),
+        };
+
         return {
             resonance_status: delta > 0.7 ? "critical" : delta > 0.3 ? "misaligned" : "aligned",
             equilibrium_delta: delta,
+            suggested_axiom_tags: delta > 0.7 ? ["AXIOM_1_BALANCE"] : [],
+            drivers,
+            baseline_used: false,
         };
     }
 }

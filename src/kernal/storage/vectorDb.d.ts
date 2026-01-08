@@ -27,3 +27,4 @@ declare class VectorDb {
  */
 export declare function getVectorDb(): Promise<VectorDb>;
 export {};
+//# sourceMappingURL=vectorDb.d.ts.map

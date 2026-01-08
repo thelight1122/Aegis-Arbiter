@@ -7,3 +7,4 @@ export declare const FindingMap: Record<string, {
     risk: number;
     coherence: number;
 }>;
+//# sourceMappingURL=mappings.d.ts.map

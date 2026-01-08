@@ -9,3 +9,4 @@ export declare class PromotionGate {
      */
     static evaluate(tensor: AegisTensor): boolean;
 }
+//# sourceMappingURL=promotionGate.d.ts.map

@@ -10,3 +10,4 @@ export declare class PrismGate {
      */
     static detectVector(input: string): InteractionVector;
 }
+//# sourceMappingURL=prismGate.d.ts.map

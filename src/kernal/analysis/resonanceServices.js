@@ -1,4 +1,4 @@
-import { getVectorDb } from "../storage/vectorDb";
+import { getVectorDb } from "../storage/vectorDb.js";
 /**
  * ResonanceService is responsible for analyzing the 'distance' between a new
  * peer tensor and the existing spine.
@@ -26,7 +26,11 @@ export class ResonanceService {
         if (!spineVector) {
             return 0;
         }
-        const peerVector = await vectorDb.createVector(ptTensor.state.payload.text);
+        const text = ptTensor.state.payload.text ?? ptTensor.state.payload.summary;
+        if (!text) {
+            return 0;
+        }
+        const peerVector = await vectorDb.createVector(text);
         return await vectorDb.compareVectors(spineVector, peerVector);
     }
     /**
@@ -41,9 +45,17 @@ export class ResonanceService {
         // In a real implementation, this would involve a more complex calculation
         // based on the history of the conversation.
         const delta = Math.random();
+        const drivers = {
+            drift_risk: delta,
+            spine_coherence: Math.max(0, 1 - delta),
+            current_coherence: Math.max(0, 1 - delta / 2),
+        };
         return {
             resonance_status: delta > 0.7 ? "critical" : delta > 0.3 ? "misaligned" : "aligned",
             equilibrium_delta: delta,
+            suggested_axiom_tags: delta > 0.7 ? ["AXIOM_1_BALANCE"] : [],
+            drivers,
+            baseline_used: false,
         };
     }
 }

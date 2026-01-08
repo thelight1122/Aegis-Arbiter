@@ -17,7 +17,7 @@ export class SuggestionEngine {
    * This is option-framed and canon-bound (AXIOM_1..AXIOM_6 only).
    */
   static generate(current: AegisTensor, snapshot: AlignmentSnapshot): IDSReply | null {
-    if (snapshot.resonance_status === "stable") return null;
+    if (snapshot.resonance_status === "aligned") return null;
 
     const tags = uniqueStrings(snapshot.suggested_axiom_tags ?? []);
     const tagText = tags.length > 0 ? tags.join(", ") : "uncertain";

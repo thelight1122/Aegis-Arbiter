@@ -36,3 +36,4 @@ export interface AegisTensor {
         pinned: boolean;
     };
 }
+//# sourceMappingURL=tensor.d.ts.map

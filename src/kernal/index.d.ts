@@ -1,4 +1,4 @@
-import { TensorRepository } from "./storage/tensorRepository.js";
+import type { TensorRepository } from "./storage/tensorRepository.js";
 export declare class AegisKernel {
     private repo;
     constructor(repo: TensorRepository);

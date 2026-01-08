@@ -10,6 +10,7 @@ export declare class ArbiterOrchestrator {
     private db;
     private bookcase;
     private auditBridge;
+    private recovery;
     constructor(repo: TensorRepository, resonance: ResonanceService, db: any);
     /**
      * Processes a peer request through the full AEGIS stack.
@@ -35,16 +36,30 @@ export declare class ArbiterOrchestrator {
             define: string;
             suggest: string[];
         };
-        findings: any;
+        findings: import("../analyzeText.js").Finding[];
         pause_triggered?: undefined;
         shelf_id?: undefined;
     } | {
         status: "aligned" | "misaligned" | "critical";
         delta: number;
         ids: import("./analysis/suggestionEngine.js").IDSReply | null;
-        findings: any;
+        findings: import("../analyzeText.js").Finding[];
         pause_triggered?: undefined;
         shelf_id?: undefined;
         vector?: undefined;
+    }>;
+    /**
+     * Resumes a session by integrating a shelved fracture.
+     */
+    resume(sessionId: string, shelfId: string, peerNote: string): Promise<{
+        status: string;
+        pause_triggered: boolean;
+        notice: string;
+        delta?: undefined;
+    } | {
+        status: string;
+        notice: string;
+        delta: number;
+        pause_triggered?: undefined;
     }>;
 }

@@ -12,3 +12,4 @@ export declare class SuggestionEngine {
      */
     static generate(current: AegisTensor, snapshot: AlignmentSnapshot): IDSReply | null;
 }
+//# sourceMappingURL=suggestionEngine.d.ts.map

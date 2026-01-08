@@ -1,6 +1,6 @@
 
-import { AegisTensor } from "../tensor.js";
-import { Database } from "better-sqlite3";
+import type { AegisTensor } from "../tensor.js";
+import type { Database } from "better-sqlite3";
 
 /**
  * AuditBridge (an informal term for a 'Peer-to-Spine' data flow) is responsible

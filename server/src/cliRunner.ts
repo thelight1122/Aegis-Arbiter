@@ -1,6 +1,6 @@
 // server/src/cliRunner.ts
 import type { Analysis } from "./analyzer.js";
-import { analyzeText } from "./analyzer.js";
+import { analyzeText } from "./analyzeText.js";
 
 type RunCliInput = {
   mode: "rbc" | "arbiter" | "lint";
@@ -23,5 +23,5 @@ function mapMode(mode: RunCliInput["mode"]): { rbc: boolean; arbiter: boolean; l
 export async function runAegisCli(input: RunCliInput): Promise<Analysis> {
   const text = composeInput(input.prompt, input.notepad);
   const flags = mapMode(input.mode);
-  return analyzeText(text, flags);
+  return analyzeText(text);
 }

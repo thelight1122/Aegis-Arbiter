@@ -1,5 +1,5 @@
-import { AegisTensor } from "../tensor";
-import { Database } from "better-sqlite3";
+import type { AegisTensor } from "../tensor.js";
+import type { Database } from "better-sqlite3";
 
 /**
  * TensorRepository is responsible for persisting and retrieving tensors from the database.

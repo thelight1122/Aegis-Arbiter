@@ -8,3 +8,4 @@ export declare class ReframerService {
      */
     static reframe(input: string, findings: any[]): string[];
 }
+//# sourceMappingURL=reframerServices.d.ts.map

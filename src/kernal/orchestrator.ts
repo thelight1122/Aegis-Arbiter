@@ -1,4 +1,4 @@
-import { analyzeText } from "../../server/dist/analyzer.js";
+import { analyzeText } from "../analyzeText.js";
 import { TensorFactory } from "./tensor/factory.js";
 import type { TensorRepository } from "./storage/tensorRepository.js";
 import type { ResonanceService } from "./analysis/resonanceServices.js";
@@ -6,8 +6,10 @@ import { SuggestionEngine } from "./analysis/suggestionEngine.js";
 import { PromotionGate } from "./evolution/promotionGate.js";
 import { PrismGate } from "./analysis/prismGate.js";
 import { ReframerService } from "./analysis/reframerServices.js";
+import { SelfAuditService } from "./analysis/selfAuditService.js";
 import { BookcaseService } from "./storage/bookcaseService.js";
 import { AuditBridge } from "./storage/auditBridge.js";
+import { RecoveryService } from "./analysis/recoveryServices.js";
 
 /**
  * The ArbiterOrchestrator is the integration layer.
@@ -16,6 +18,7 @@ import { AuditBridge } from "./storage/auditBridge.js";
 export class ArbiterOrchestrator {
   private bookcase: BookcaseService;
   private auditBridge: AuditBridge;
+  private recovery: RecoveryService;
 
   constructor(
     private repo: TensorRepository,
@@ -24,6 +27,7 @@ export class ArbiterOrchestrator {
   ) {
     this.bookcase = new BookcaseService(db);
     this.auditBridge = new AuditBridge(db);
+    this.recovery = new RecoveryService(db);
   }
 
   /**
@@ -92,8 +96,21 @@ export class ArbiterOrchestrator {
     // 6. REFLECT: SuggestionEngine (IDS Block)
     const ids = SuggestionEngine.generate(ptTensor, snapshot);
     if (ids) {
-      const pivots = ReframerService.reframe(input, analysis.findings);
-      ids.suggest.push(...pivots);
+      // 6. SELF-AUDIT: The Recursive Integrity Check
+      const fullText = `${ids.identify} ${ids.define} ${ids.suggest.join(" ")}`;
+      const selfCheck = SelfAuditService.verify(fullText);
+
+      if (!selfCheck.ok) {
+        // System detects its own drift; re-routes to Reframer
+        const cleanSuggestions = ReframerService.reframe(fullText, selfCheck.findings);
+        ids.suggest = [
+          ...cleanSuggestions,
+          "System note: Self-correction applied to remove force language."
+        ];
+      } else {
+        const pivots = ReframerService.reframe(input, analysis.findings);
+        ids.suggest.push(...pivots);
+      }
     }
 
     // Return the multidimensional response
@@ -102,6 +119,24 @@ export class ArbiterOrchestrator {
       delta: delta,
       ids,
       findings: analysis.findings
+    };
+  }
+
+  /**
+   * Resumes a session by integrating a shelved fracture.
+   */
+  async resume(sessionId: string, shelfId: string, peerNote: string) {
+    const integration = this.recovery.integrate(shelfId, peerNote);
+
+    if (!integration.ok) {
+      return { status: "fractured", pause_triggered: true, notice: integration.message };
+    }
+
+    // Return a 'stable' status to allow the ParameterGate to open
+    return {
+      status: "stable",
+      notice: "Recovery complete. AXIOM_4_FLOW restored.",
+      delta: 0.0 // Reset delta for the restart
     };
   }
 }

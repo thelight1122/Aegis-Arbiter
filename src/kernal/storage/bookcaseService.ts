@@ -1,6 +1,6 @@
 
-import { AegisTensor } from "../tensor.js";
-import { Database } from "better-sqlite3";
+import type { AegisTensor } from "../tensor.js";
+import type { Database } from "better-sqlite3";
 
 type ShelfId = string;
 type ShelfReason = "HIGH_FRICTION_FRACTURE" | "USER_REQUESTED" | "UNKNOWN";

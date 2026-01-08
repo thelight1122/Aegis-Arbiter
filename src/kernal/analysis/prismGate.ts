@@ -1,5 +1,3 @@
-import { AegisTensor } from "../tensor/types/tensor.js";
-
 export type InteractionVector = "CORRECTNESS" | "POSTURE";
 
 /**

@@ -1,6 +1,6 @@
 import { TensorFactory } from "./tensor/factory.js";
 // Assuming the linter is imported from the existing project structure
-import { analyzeText } from "../../server/dist/analyzer.js";
+import { analyzeText } from "../analyzeText.js";
 export class AegisKernel {
     repo;
     constructor(repo) {
