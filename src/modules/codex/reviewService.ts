@@ -1,5 +1,5 @@
 import { analyzeText } from "../../analyzeText.js";
-import { IDSReply } from "../../kernal/analysis/suggestionEngine.js";
+import type { IDSReply } from "../../kernal/analysis/suggestionEngine.js";
 
 export interface ReviewResult {
   is_aligned: boolean;

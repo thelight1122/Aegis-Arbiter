@@ -1,0 +1,47 @@
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  background: #0f0f12;
+  color: #e7e7ea;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.left-column {
+  flex: 2;
+  padding: 40px;
+  border-right: 1px solid #2a2a2f;
+}
+
+.right-column {
+  flex: 1;
+  padding: 24px;
+}
+
+.interaction-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 12px;
+  background: #15161b;
+  border: 1px solid #2b2d33;
+  color: #e7e7ea;
+}
+
+.primary-button {
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: #2a2a2f;
+  color: #e7e7ea;
+  border: 1px solid #3a3a44;
+  cursor: pointer;
+}
+
+.response-box {
+  margin-top: 20px;
+  padding: 16px;
+  background: #14151a;
+  border: 1px solid #2b2d33;
+}
+
+.pause-message {
+  color: #ffb347;
+}

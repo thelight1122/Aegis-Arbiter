@@ -1,4 +1,4 @@
-import { LensStatus } from "./lensMonitor.js";
+import type { LensStatus } from "./lensMonitor.js";
 
 export interface ECUState {
   tension_level: number; // 0..1

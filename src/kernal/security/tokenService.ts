@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-import { AegisTensor } from "../tensor/types/tensor.js";
+import type { AegisTensor } from "../tensor/types/tensor.js";
 
 /**
  * The TokenService generates the 'Release Token'.

@@ -1,1 +1,1 @@
-{"root":["./src/App.tsx","./src/main.tsx","./src/types.ts","./src/lib/api.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/mirrorapp.tsx","./src/main.tsx","./src/types.ts","./src/components/glassgate.tsx","./src/components/spineexplorer.tsx","./src/components/trajectorymap.tsx","./src/lib/api.ts"],"version":"5.9.3"}

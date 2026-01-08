@@ -1,5 +1,5 @@
 import { TensorRepository } from "../storage/tensorRepository.js";
-import { AegisTensor } from "../tensor/types/tensor.js";
+import type { AegisTensor } from "../tensor/types/tensor.js";
 
 declare module "../storage/tensorRepository.js" {
   interface TensorRepository {

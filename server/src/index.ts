@@ -14,13 +14,17 @@ import { ResonanceService } from "../../src/kernal/analysis/resonanceServices.js
 const app = express();
 
 const dbPath = path.join(process.cwd(), "data", "aegis-kernel.sqlite");
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
 // NOTE: This path assumes you're running the server with CWD=server/
-// and that the schema lives at: server/src/kernel/storage/schema.sql
-const schemaPath = path.join(process.cwd(), "src", "kernel", "storage", "schema.sql");
+// and that the schema lives at: ../src/kernal/storage/schema.sql
+const schemaPath = path.join(process.cwd(), "..", "src", "kernal", "storage", "schema.sql");
 const schemaSql = fs.readFileSync(schemaPath, "utf8");
 db.exec(schemaSql);
 db.exec("CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY);");

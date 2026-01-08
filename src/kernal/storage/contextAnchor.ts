@@ -1,5 +1,5 @@
 import { TensorRepository } from "./tensorRepository.js";
-import { AegisTensor } from "../tensor/types/tensor.js";
+import type { AegisTensor } from "../tensor/types/tensor.js";
 
 /**
  * The ContextAnchorService ensures the system 'Remembers' its Spine.

@@ -69,3 +69,21 @@ const Meter = ({ label, value }: { label: string; value: number }) => (
     />
   </div>
 );
+
+const schemaSql = `
+  CREATE TABLE IF NOT EXISTS telemetry (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    flow_energy REAL,
+    lenses TEXT,
+    tension REAL,
+    active_axioms TEXT
+  );
+`;
+
+const db = {
+  exec: (_sql: string) => {
+    // noop: schema management is handled elsewhere
+  },
+};
+
+db.exec(schemaSql);

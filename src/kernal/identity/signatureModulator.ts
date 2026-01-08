@@ -1,4 +1,4 @@
-import { LensStatus } from "../analysis/lensMonitor.js";
+import type { LensStatus } from "../analysis/lensMonitor.js";
 
 export type IdentitySignature = "MENTOR" | "LIBRARIAN" | "ANALYST" | "ARTIST";
 

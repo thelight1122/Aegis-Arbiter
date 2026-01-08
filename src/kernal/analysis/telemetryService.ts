@@ -1,4 +1,4 @@
-import { LensStatus } from "./lensMonitor.js";
+import type { LensStatus } from "./lensMonitor.js";
 
 /**
  * The TelemetryService provides the 'Internal Monologue' for the Glass Gate.

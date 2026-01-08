@@ -14,7 +14,7 @@ export declare class MirrorManager {
         type: string;
         timestamp: string;
         alignment: string;
-        lenses: never[] | import("../../kernal/analysis/lensMonitor.js").LensStatus;
+        lenses: import("../../kernal/analysis/lensMonitor.js").LensStatus | never[];
         ids: import("../../kernal/analysis/suggestionEngine.js").IDSReply | {
             identify: string;
             define: string;

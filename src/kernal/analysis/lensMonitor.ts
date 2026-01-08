@@ -1,4 +1,4 @@
-import { AegisTensor } from "../tensor/types/tensor.js";
+import type { AegisTensor } from "../tensor/types/tensor.js";
 
 export interface LensStatus {
   physical: number;   // Survival/Resource alignment

@@ -1,4 +1,4 @@
-import { LensStatus } from "../../kernal/analysis/lensMonitor.js";
+import type { LensStatus } from "../../kernal/analysis/lensMonitor.js";
 
 export interface FinancialSnapshot {
   sustainability_index: number; // 0..1
