@@ -15,7 +15,7 @@ export class ContextAnchorService {
   async anchor(sessionId: string): Promise<AegisTensor[]> {
     // Pull the most recent Spine Tensors (ST) for this session.
     // These represent the 'Resolved Physics' of the project.
-    const spine = this.resolveSpine(sessionId, 5);
+    const spine = await this.resolveSpine(sessionId, 5);
 
     if (spine.length === 0) {
       // If no spine exists, the system starts in a 'Rested' baseline.
@@ -26,11 +26,17 @@ export class ContextAnchorService {
     return spine;
   }
 
-  private resolveSpine(sessionId: string, limit: number): AegisTensor[] {
+  private async resolveSpine(sessionId: string, limit: number): Promise<AegisTensor[]> {
     const spineProvider = this.repo as TensorRepository & {
-      getSpine?: (sessionId: string, limit: number) => AegisTensor[];
+      getSpine?: (sessionId: string, limit: number) => Promise<AegisTensor[]>;
     };
 
-    return spineProvider.getSpine?.(sessionId, limit) ?? [];
+    const spine = spineProvider.getSpine?.(sessionId, limit);
+
+    if (!spine) {
+      return [];
+    }
+
+    return await spine;
   }
 }
