@@ -10,12 +10,14 @@ import { SelfAuditService } from "./analysis/selfAuditService.js";
 import { TelemetryService } from "./analysis/telemetryService.js";
 import { LensMonitor } from "./analysis/lensMonitor.js";
 import { FlowCalculator } from "./flowCalculator.js";
+import { ECUService } from "./analysis/ecuService.js";
 import { BookcaseService } from "./storage/bookcaseService.js";
 import { AuditBridge } from "./storage/auditBridge.js";
 import { RecoveryService } from "./analysis/recoveryServices.js";
 import { ContextAnchorService } from "./storage/contextAnchor.js";
 import { witnessEmitter } from "../witness.js";
 import { ResetService } from "./storage/resetServices.js";
+import { IntentGatingService } from "./security/intentGate.js";
 
 /**
  * The ArbiterOrchestrator is the integration layer.
@@ -44,6 +46,25 @@ export class ArbiterOrchestrator {
    * Processes a peer request through the full AEGIS stack.
    */
   async process(sessionId: string, input: string) {
+    // 0. INGRES: Intent Alignment Check
+    const intentAudit = IntentGatingService.evaluate(input);
+
+    if (!intentAudit.is_resonant) {
+      // Intent seeks AXIOM_3_FORCE; System initiates Pause
+      return {
+        status: "pending_alignment",
+        pressure_score: intentAudit.pressure_score,
+        ids: {
+          identify: "Non-resonant intent detected.",
+          define: "Input exhibits a high pressure gradient seeking to bypass AXIOM_6_CHOICE.",
+          suggest: [
+            "Reframe the request to preserve peer sovereignty.",
+            "Remove urgency or ultimatum markers to restore Flow."
+          ]
+        }
+      };
+    }
+
     // 0. ANCHOR: Rehydrate the Logic Spine
     const spine = await this.anchorService.anchor(sessionId);
     void spine;
@@ -138,6 +159,15 @@ export class ArbiterOrchestrator {
       delta
     );
 
+    // 8. STABILIZE: The ECU Loop (AXIOM_1_BALANCE)
+    const ecu = ECUService.stabilize(lensStatus);
+
+    if (ecu.is_paused) {
+      // System initiates Internal Inquiry; release is delayed for stabilization
+      this.auditBridge.logAlignment(sessionId, ptTensor); // Log the tension
+      // In a real implementation, this might trigger a secondary re-alignment pass
+    }
+
     // 8. WITNESS: The Glass Gate Broadcast
     const telemetry = TelemetryService.compile(
       flow,
@@ -152,7 +182,8 @@ export class ArbiterOrchestrator {
     return {
       status: snapshot.resonance_status,
       delta: delta,
-      telemetry: telemetry,
+      ecu_state: ecu,
+      telemetry: { ...telemetry, tension: ecu.tension_level },
       ids,
       findings: analysis.findings
     };

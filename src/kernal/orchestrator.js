@@ -5,9 +5,17 @@ import { PromotionGate } from "./evolution/promotionGate.js";
 import { PrismGate } from "./analysis/prismGate.js";
 import { ReframerService } from "./analysis/reframerServices.js";
 import { SelfAuditService } from "./analysis/selfAuditService.js";
+import { TelemetryService } from "./analysis/telemetryService.js";
+import { LensMonitor } from "./analysis/lensMonitor.js";
+import { FlowCalculator } from "./flowCalculator.js";
+import { ECUService } from "./analysis/ecuService.js";
 import { BookcaseService } from "./storage/bookcaseService.js";
 import { AuditBridge } from "./storage/auditBridge.js";
 import { RecoveryService } from "./analysis/recoveryServices.js";
+import { ContextAnchorService } from "./storage/contextAnchor.js";
+import { witnessEmitter } from "../witness.js";
+import { ResetService } from "./storage/resetServices.js";
+import { IntentGatingService } from "./security/intentGate.js";
 /**
  * The ArbiterOrchestrator is the integration layer.
  * It ensures every interaction follows the Physics of the Canon.
@@ -19,6 +27,8 @@ export class ArbiterOrchestrator {
     bookcase;
     auditBridge;
     recovery;
+    anchorService;
+    resetService;
     constructor(repo, resonance, db // Assuming shared DB connection
     ) {
         this.repo = repo;
@@ -27,11 +37,33 @@ export class ArbiterOrchestrator {
         this.bookcase = new BookcaseService(db);
         this.auditBridge = new AuditBridge(db);
         this.recovery = new RecoveryService(db);
+        this.anchorService = new ContextAnchorService(repo);
+        this.resetService = new ResetService(db);
     }
     /**
      * Processes a peer request through the full AEGIS stack.
      */
     async process(sessionId, input) {
+        // 0. INGRES: Intent Alignment Check
+        const intentAudit = IntentGatingService.evaluate(input);
+        if (!intentAudit.is_resonant) {
+            // Intent seeks AXIOM_3_FORCE; System initiates Pause
+            return {
+                status: "pending_alignment",
+                pressure_score: intentAudit.pressure_score,
+                ids: {
+                    identify: "Non-resonant intent detected.",
+                    define: "Input exhibits a high pressure gradient seeking to bypass AXIOM_6_CHOICE.",
+                    suggest: [
+                        "Reframe the request to preserve peer sovereignty.",
+                        "Remove urgency or ultimatum markers to restore Flow."
+                    ]
+                }
+            };
+        }
+        // 0. ANCHOR: Rehydrate the Logic Spine
+        const spine = await this.anchorService.anchor(sessionId);
+        void spine;
         // 0. CLASSIFY: The Prism Gate (Posture vs Content)
         const vector = PrismGate.detectVector(input);
         // 1. OBSERVE: The Linter (Centrifuge)
@@ -101,10 +133,30 @@ export class ArbiterOrchestrator {
                 ids.suggest.push(...pivots);
             }
         }
+        const lensStatus = LensMonitor.evaluate(ptTensor);
+        const flow = FlowCalculator.calculate({
+            physical: lensStatus.physical,
+            emotional: lensStatus.emotional,
+            mental: lensStatus.mental,
+            spiritual: lensStatus.spiritual
+        }, delta);
+        // 8. STABILIZE: The ECU Loop (AXIOM_1_BALANCE)
+        const ecu = ECUService.stabilize(lensStatus);
+        if (ecu.is_paused) {
+            // System initiates Internal Inquiry; release is delayed for stabilization
+            this.auditBridge.logAlignment(sessionId, ptTensor); // Log the tension
+            // In a real implementation, this might trigger a secondary re-alignment pass
+        }
+        // 8. WITNESS: The Glass Gate Broadcast
+        const telemetry = TelemetryService.compile(flow, lensStatus, ptTensor.state.labels.axiom_tags);
+        // Broadcast the internal monologue to any connected Witness Streams
+        witnessEmitter.emit("resonance_event", telemetry);
         // Return the multidimensional response
         return {
             status: snapshot.resonance_status,
             delta: delta,
+            ecu_state: ecu,
+            telemetry: { ...telemetry, tension: ecu.tension_level },
             ids,
             findings: analysis.findings
         };
@@ -122,6 +174,17 @@ export class ArbiterOrchestrator {
             status: "stable",
             notice: "Recovery complete. AXIOM_4_FLOW restored.",
             delta: 0.0 // Reset delta for the restart
+        };
+    }
+    /**
+     * Resets the interaction field to clear AXIOM_2_EXTREMES.
+     */
+    async fullReset(sessionId) {
+        const result = await this.resetService.reset(sessionId);
+        return {
+            status: "rested",
+            purged: result.purged_count,
+            notice: "Axiomatic Reset complete. Interaction field restored to AXIOM_1_BALANCE."
         };
     }
 }

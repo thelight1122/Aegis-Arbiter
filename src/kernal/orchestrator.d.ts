@@ -11,11 +11,28 @@ export declare class ArbiterOrchestrator {
     private bookcase;
     private auditBridge;
     private recovery;
+    private anchorService;
+    private resetService;
     constructor(repo: TensorRepository, resonance: ResonanceService, db: any);
     /**
      * Processes a peer request through the full AEGIS stack.
      */
     process(sessionId: string, input: string): Promise<{
+        status: string;
+        pressure_score: number;
+        ids: {
+            identify: string;
+            define: string;
+            suggest: string[];
+        };
+        pause_triggered?: undefined;
+        shelf_id?: undefined;
+        delta?: undefined;
+        vector?: undefined;
+        findings?: undefined;
+        ecu_state?: undefined;
+        telemetry?: undefined;
+    } | {
         status: string;
         pause_triggered: boolean;
         shelf_id: string;
@@ -24,9 +41,12 @@ export declare class ArbiterOrchestrator {
             define: string;
             suggest: string[];
         };
+        pressure_score?: undefined;
         delta?: undefined;
         vector?: undefined;
         findings?: undefined;
+        ecu_state?: undefined;
+        telemetry?: undefined;
     } | {
         status: string;
         delta: number;
@@ -37,13 +57,26 @@ export declare class ArbiterOrchestrator {
             suggest: string[];
         };
         findings: import("../analyzeText.js").Finding[];
+        pressure_score?: undefined;
         pause_triggered?: undefined;
         shelf_id?: undefined;
+        ecu_state?: undefined;
+        telemetry?: undefined;
     } | {
         status: "aligned" | "misaligned" | "critical";
         delta: number;
+        ecu_state: import("./analysis/ecuService.js").ECUState;
+        telemetry: {
+            tension: number;
+            timestamp: string;
+            flow_energy: number;
+            integrity_product: number;
+            lenses: import("./analysis/lensMonitor.js").LensStatus;
+            active_axioms: string[];
+        };
         ids: import("./analysis/suggestionEngine.js").IDSReply | null;
         findings: import("../analyzeText.js").Finding[];
+        pressure_score?: undefined;
         pause_triggered?: undefined;
         shelf_id?: undefined;
         vector?: undefined;
@@ -61,5 +94,13 @@ export declare class ArbiterOrchestrator {
         notice: string;
         delta: number;
         pause_triggered?: undefined;
+    }>;
+    /**
+     * Resets the interaction field to clear AXIOM_2_EXTREMES.
+     */
+    fullReset(sessionId: string): Promise<{
+        status: string;
+        purged: number;
+        notice: string;
     }>;
 }

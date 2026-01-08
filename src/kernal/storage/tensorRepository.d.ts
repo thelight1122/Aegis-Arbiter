@@ -22,4 +22,8 @@ export declare class TensorRepository {
      * @returns {Promise<number[] | null>} - The spine vector.
      */
     getSpineVector(sessionId: string): Promise<number[] | null>;
+    /**
+     * Retrieves the most recent Spine tensors for a session.
+     */
+    getSpine(sessionId: string, limit: number): Promise<AegisTensor[]>;
 }

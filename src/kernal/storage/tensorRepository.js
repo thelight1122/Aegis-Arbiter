@@ -30,4 +30,12 @@ export class TensorRepository {
         // based on the history of the conversation.
         return null;
     }
+    /**
+     * Retrieves the most recent Spine tensors for a session.
+     */
+    async getSpine(sessionId, limit) {
+        const query = this.db.prepare("SELECT data FROM tensors WHERE session_id = ? AND tensor_type = 'ST' ORDER BY created_at DESC LIMIT ?");
+        const rows = query.all(sessionId, limit);
+        return rows.map((row) => JSON.parse(row.data));
+    }
 }
