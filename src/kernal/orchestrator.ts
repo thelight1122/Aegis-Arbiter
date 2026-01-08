@@ -10,6 +10,7 @@ import { SelfAuditService } from "./analysis/selfAuditService.js";
 import { BookcaseService } from "./storage/bookcaseService.js";
 import { AuditBridge } from "./storage/auditBridge.js";
 import { RecoveryService } from "./analysis/recoveryServices.js";
+import { ContextAnchorService } from "./storage/contextAnchor.js";
 
 /**
  * The ArbiterOrchestrator is the integration layer.
@@ -19,6 +20,7 @@ export class ArbiterOrchestrator {
   private bookcase: BookcaseService;
   private auditBridge: AuditBridge;
   private recovery: RecoveryService;
+  private anchorService: ContextAnchorService;
 
   constructor(
     private repo: TensorRepository,
@@ -28,12 +30,17 @@ export class ArbiterOrchestrator {
     this.bookcase = new BookcaseService(db);
     this.auditBridge = new AuditBridge(db);
     this.recovery = new RecoveryService(db);
+    this.anchorService = new ContextAnchorService(repo);
   }
 
   /**
    * Processes a peer request through the full AEGIS stack.
    */
   async process(sessionId: string, input: string) {
+    // 0. ANCHOR: Rehydrate the Logic Spine
+    const spine = await this.anchorService.anchor(sessionId);
+    void spine;
+
     // 0. CLASSIFY: The Prism Gate (Posture vs Content)
     const vector = PrismGate.detectVector(input);
 
