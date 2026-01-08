@@ -2,8 +2,28 @@
 import express from "express";
 import cors from "cors";
 import { runAegisCli } from "./cliRunner.js";
+import { ArbiterOrchestrator } from "../../src/kernal/orchestrator.js";
+import { TensorRepository } from "../../src/kernal/storage/tensorRepository.js";
+import { ResonanceService } from "../../src/kernal/analysis/resonanceServices.js";
+import Database from "better-sqlite3";
+import fs from "node:fs";
+import path from "node:path";
 
 const app = express();
+
+const dbPath = path.join(process.cwd(), "data", "aegis-kernel.sqlite");
+const db = new Database(dbPath);
+db.pragma("journal_mode = WAL");
+db.pragma("foreign_keys = ON");
+
+const schemaPath = path.join(process.cwd(), "src", "kernal", "storage", "schema.sql");
+const schemaSql = fs.readFileSync(schemaPath, "utf8");
+db.exec(schemaSql);
+db.exec("CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY);");
+
+const tensorRepo = new TensorRepository(db);
+const resonance = new ResonanceService(tensorRepo);
+const orchestrator = new ArbiterOrchestrator(tensorRepo, resonance);
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
@@ -70,10 +90,28 @@ app.post("/api/analyze", async (req, res) => {
   const mode = (body.mode ?? "rbc") as "rbc" | "arbiter" | "lint";
   const prompt = (body.prompt ?? "").toString();
   const notepad = (body.notepad ?? "").toString();
+  const sessionId = typeof body.sessionId === "string" ? body.sessionId : "";
+  const text = typeof body.text === "string" ? body.text : "";
 
   const start = Date.now();
 
   try {
+    if (sessionId && text) {
+      db.prepare("INSERT OR IGNORE INTO sessions (id) VALUES (?)").run(sessionId);
+
+      const result = await orchestrator.process(sessionId, text);
+
+      if (result.status === "fractured") {
+        return res.json({
+          ...result,
+          pause_triggered: true,
+          notice: "System has initiated a Self-Care Pause. State archived to Bookcase."
+        });
+      }
+
+      return res.json(result);
+    }
+
     const json = await runAegisCli({ mode, prompt, notepad });
 
     res.json({
