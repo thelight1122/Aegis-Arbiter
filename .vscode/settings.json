@@ -15,5 +15,6 @@
     "**/build/**": true
   },
 
-  "webhint.enable": false
+  "webhint.enable": false,
+  "CodeGPT.apiKey": "LM Studio"
 }
