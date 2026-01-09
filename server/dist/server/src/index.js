@@ -5,9 +5,13 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { runAegisCli } from "./cliRunner.js";
+import { ledgerMiddleware } from "./ledger.js";
 import { ArbiterOrchestrator } from "../../src/kernal/orchestrator.js";
 import { TensorRepository } from "../../src/kernal/storage/tensorRepository.js";
 import { ResonanceService } from "../../src/kernal/analysis/resonanceServices.js";
+import { MirrorManager } from "../../src/modules/mirror/mirrorManager.js";
+import { SovereigntyProgressService } from "../../src/modules/mirror/progressService.js";
+import { witnessEmitter } from "../../src/witness.js";
 const app = express();
 const dbPath = path.join(process.cwd(), "data", "aegis-kernel.sqlite");
 const dbDir = path.dirname(dbPath);
@@ -26,6 +30,8 @@ db.exec("CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY);");
 const tensorRepo = new TensorRepository(db);
 const resonance = new ResonanceService(tensorRepo);
 const orchestrator = new ArbiterOrchestrator(tensorRepo, resonance, db);
+const mirrorManager = new MirrorManager(orchestrator);
+const progressService = new SovereigntyProgressService(tensorRepo);
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 /**
@@ -63,6 +69,55 @@ app.get("/api/ping", (_req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+app.get("/api/ledger", ledgerMiddleware(tensorRepo));
+app.get("/api/progress", async (req, res) => {
+    const sessionId = (req.query?.sessionId ?? "").toString();
+    if (!sessionId) {
+        return res.status(400).json({ ok: false, error: "Missing sessionId." });
+    }
+    try {
+        const trend = await progressService.getEvolutionTrend(sessionId);
+        res.json({ ok: true, session_id: sessionId, trend });
+    }
+    catch (error) {
+        res.status(500).json({ ok: false, error: "Progress Retrieval Fractured" });
+    }
+});
+app.post("/api/mirror/reflect", async (req, res) => {
+    const sessionId = (req.body?.sessionId ?? "").toString();
+    const text = (req.body?.text ?? "").toString();
+    if (!sessionId || !text) {
+        return res.status(400).json({ ok: false, error: "Missing sessionId or text." });
+    }
+    try {
+        const result = await mirrorManager.reflect(sessionId, text);
+        res.json({ ok: true, ...result });
+    }
+    catch (error) {
+        res.status(500).json({ ok: false, error: "Mirror Reflection Fractured" });
+    }
+});
+app.get("/api/witness", (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    if (typeof res.flushHeaders === "function") {
+        res.flushHeaders();
+    }
+    const send = (payload) => {
+        res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    };
+    const unsubscribe = witnessEmitter.on("resonance_event", send);
+    const keepAlive = setInterval(() => {
+        res.write(": keep-alive\n\n");
+    }, 15000);
+    req.on("close", () => {
+        clearInterval(keepAlive);
+        unsubscribe();
+        res.end();
+    });
+});
 function buildSummary(json) {
     const mode = json?.mode ?? "rbc";
     const flagged = Boolean(json?.flagged);
@@ -73,5 +128,20 @@ function buildSummary(json) {
         : `✅ No issues found`;
     return `${mode.toUpperCase()} ANALYSIS SUMMARY: ${base} (${total} total points)`;
 }
-// ...existing code...
+app.post("/api/analyze", async (req, res) => {
+    try {
+        const mode = (req.body?.mode ?? "rbc");
+        const prompt = (req.body?.prompt ?? "").toString();
+        const notepad = (req.body?.notepad ?? "").toString();
+        const analysis = await runAegisCli({ mode, prompt, notepad });
+        res.json({ ok: true, summary: buildSummary(analysis), ...analysis });
+    }
+    catch (error) {
+        res.status(500).json({ ok: false, error: "Aegis analysis failed." });
+    }
+});
+const port = Number(process.env.PORT ?? 8787);
+app.listen(port, () => {
+    console.log(`[aegis-arbiter-server] listening on http://localhost:${port}`);
+});
 //# sourceMappingURL=index.js.map

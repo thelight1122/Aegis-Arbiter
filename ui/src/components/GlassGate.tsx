@@ -31,7 +31,7 @@ export const GlassGate: React.FC = () => {
     return () => eventSource.close();
   }, []);
 
-  if (!data) return <div>Awaiting Resonance...</div>;
+  if (!data) return <div className="glass-gate-placeholder">Awaiting Resonance...</div>;
 
   return (
     <div className="glass-gate">

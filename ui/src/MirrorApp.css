@@ -1,0 +1,394 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #0d1214;
+}
+
+.mirror-app-container {
+  min-height: 100vh;
+  color: #f4f0e8;
+  font-family: "Avenir Next", "Avenir", "Gill Sans", "Trebuchet MS", sans-serif;
+  background: radial-gradient(circle at 20% 20%, rgba(208, 139, 91, 0.15), transparent 45%),
+    radial-gradient(circle at 80% 10%, rgba(96, 138, 122, 0.22), transparent 35%),
+    linear-gradient(120deg, #0d1214 0%, #131b1d 45%, #1b2424 100%);
+  position: relative;
+  overflow: hidden;
+  padding: 28px 28px 40px;
+}
+
+.mirror-app-container::before,
+.mirror-app-container::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mirror-app-container::before {
+  inset: -20% -10% auto -10%;
+  height: 60%;
+  background: linear-gradient(140deg, rgba(244, 240, 232, 0.08), transparent 65%);
+  filter: blur(0.5px);
+}
+
+.mirror-app-container::after {
+  width: 520px;
+  height: 520px;
+  right: -120px;
+  bottom: -160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(208, 139, 91, 0.22), transparent 70%);
+}
+
+.mirror-app-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.mirror-app-brand {
+  max-width: 560px;
+}
+
+.mirror-app-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+  margin: 0 0 8px;
+  color: rgba(244, 240, 232, 0.7);
+}
+
+.mirror-app-title {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Palatino", serif;
+  font-size: clamp(28px, 3vw, 40px);
+  letter-spacing: 0.02em;
+  margin: 0 0 8px;
+}
+
+.mirror-app-subtitle {
+  margin: 0;
+  color: rgba(244, 240, 232, 0.75);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.mirror-app-status {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mirror-app-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 240, 232, 0.2);
+  background: rgba(13, 18, 20, 0.6);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mirror-app-pill-quiet {
+  color: rgba(244, 240, 232, 0.6);
+}
+
+.mirror-app-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) minmax(240px, 320px);
+  gap: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.mirror-app-sidebar,
+.mirror-app-telemetry,
+.mirror-app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mirror-card {
+  background: rgba(15, 20, 22, 0.9);
+  border: 1px solid rgba(244, 240, 232, 0.12);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.mirror-card-primary {
+  padding: 22px;
+  border: 1px solid rgba(208, 139, 91, 0.35);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(208, 139, 91, 0.08);
+}
+
+.mirror-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.mirror-card-title {
+  margin: 0;
+  font-size: 18px;
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Palatino", serif;
+  letter-spacing: 0.03em;
+}
+
+.mirror-card-subtitle {
+  margin: 8px 0 0;
+  color: rgba(244, 240, 232, 0.7);
+  font-size: 14px;
+}
+
+.mirror-card-meta {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(96, 138, 122, 0.15);
+  border: 1px solid rgba(96, 138, 122, 0.4);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(244, 240, 232, 0.75);
+}
+
+.mirror-app-journal {
+  width: 100%;
+  min-height: 220px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(244, 240, 232, 0.16);
+  background: rgba(9, 12, 13, 0.7);
+  color: #f4f0e8;
+  font-size: 15px;
+  resize: vertical;
+  font-family: "Avenir Next", "Avenir", "Gill Sans", "Trebuchet MS", sans-serif;
+}
+
+.mirror-app-journal:focus {
+  outline: none;
+  border-color: rgba(208, 139, 91, 0.6);
+  box-shadow: 0 0 0 3px rgba(208, 139, 91, 0.15);
+}
+
+.mirror-app-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.mirror-app-button {
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(208, 139, 91, 0.55);
+  background: linear-gradient(120deg, rgba(208, 139, 91, 0.25), rgba(96, 138, 122, 0.2));
+  color: #f4f0e8;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.mirror-app-button:hover {
+  border-color: rgba(208, 139, 91, 0.8);
+  transform: translateY(-1px);
+}
+
+.mirror-app-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+
+.mirror-app-hint {
+  font-size: 12px;
+  color: rgba(244, 240, 232, 0.6);
+}
+
+.mirror-app-ids-section {
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(18, 23, 25, 0.85);
+  border: 1px solid rgba(96, 138, 122, 0.35);
+}
+
+.mirror-app-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(208, 91, 91, 0.4);
+  background: rgba(42, 20, 20, 0.6);
+  font-size: 12px;
+  color: rgba(244, 200, 200, 0.9);
+}
+
+.mirror-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.mirror-insight-label {
+  margin: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(244, 240, 232, 0.55);
+}
+
+.mirror-insight-value {
+  margin: 0;
+  font-size: 15px;
+}
+
+.mirror-insight-alignment {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(9, 12, 13, 0.6);
+  border: 1px solid rgba(244, 240, 232, 0.12);
+  font-size: 13px;
+  color: rgba(244, 240, 232, 0.85);
+}
+
+.mirror-emotion-card {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(9, 12, 13, 0.6);
+  border: 1px solid rgba(244, 240, 232, 0.12);
+}
+
+.mirror-emotion-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.mirror-emotion-value {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.mirror-emotion-level {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 240, 232, 0.2);
+}
+
+.mirror-emotion-strong {
+  color: #f6e3c7;
+  border-color: rgba(208, 139, 91, 0.5);
+}
+
+.mirror-emotion-steady {
+  color: #d9e7dc;
+  border-color: rgba(96, 138, 122, 0.5);
+}
+
+.mirror-emotion-low {
+  color: #f2dcc1;
+  border-color: rgba(159, 104, 64, 0.5);
+}
+
+.mirror-emotion-critical {
+  color: #f2c1c1;
+  border-color: rgba(208, 91, 91, 0.5);
+}
+
+.mirror-emotion-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: rgba(244, 240, 232, 0.65);
+}
+
+.mirror-insight-empty {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: rgba(244, 240, 232, 0.65);
+}
+
+.mirror-insight-list {
+  margin: 0;
+  padding-left: 18px;
+  color: rgba(244, 240, 232, 0.85);
+  line-height: 1.6;
+}
+
+.mirror-ritual ol {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: rgba(244, 240, 232, 0.75);
+  line-height: 1.6;
+}
+
+.mirror-animate-1 {
+  animation: mirror-reveal 0.8s ease both;
+}
+
+.mirror-animate-2 {
+  animation: mirror-reveal 0.8s ease both;
+  animation-delay: 0.1s;
+}
+
+.mirror-animate-3 {
+  animation: mirror-reveal 0.8s ease both;
+  animation-delay: 0.2s;
+}
+
+@keyframes mirror-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1100px) {
+  .mirror-app-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mirror-app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .mirror-app-container {
+    padding: 20px 18px 32px;
+  }
+
+  .mirror-card-header {
+    flex-direction: column;
+  }
+
+  .mirror-app-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

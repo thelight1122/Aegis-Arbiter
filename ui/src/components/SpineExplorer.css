@@ -1,7 +1,34 @@
-.spine-explorer {
+.spineExplorerContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: rgba(244, 240, 232, 0.88);
+}
+
+.spineExplorerContainer h4 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.spineExplorerHistory {
+  display: grid;
+  gap: 12px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.spineExplorerEntry {
   padding: 12px;
-  border: 1px solid #2b2d33;
-  background: #14151a;
-  color: #e7e7ea;
-  border-radius: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 240, 232, 0.12);
+  background: rgba(9, 12, 13, 0.6);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.spineExplorerEntry em {
+  color: rgba(244, 240, 232, 0.7);
 }

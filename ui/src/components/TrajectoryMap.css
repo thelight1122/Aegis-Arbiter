@@ -1,7 +1,43 @@
-.trajectory-map {
+.trajectory-map-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: rgba(244, 240, 232, 0.9);
+}
+
+.trajectory-map-container h4 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trajectory-map-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.trajectory-map-label {
+  margin: 0 0 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(244, 240, 232, 0.55);
+}
+
+.trajectory-map-value {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.trajectory-map-observation {
+  margin: 0;
   padding: 12px;
-  border: 1px solid #2b2d33;
-  background: #14151a;
-  color: #e7e7ea;
-  border-radius: 8px;
+  border-radius: 12px;
+  background: rgba(9, 12, 13, 0.6);
+  border: 1px solid rgba(244, 240, 232, 0.1);
+  font-size: 13px;
+  line-height: 1.5;
 }
