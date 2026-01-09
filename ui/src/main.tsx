@@ -1,6 +1,6 @@
 import React from "react";
 import { MirrorApp } from "./MirrorApp";
-import "./main.css";
+import "../src/main";
 
 export default function App() {
   return <MirrorApp />;

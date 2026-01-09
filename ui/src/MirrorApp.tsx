@@ -74,4 +74,5 @@ export const MirrorApp: React.FC = () => {
       </aside>
     </div>
   );
-};
+}
+
