@@ -113,6 +113,65 @@ app.post("/api/mirror/reflect", async (req, res) => {
   }
 });
 
+app.post(
+  "/api/mirror/reflect-media",
+  express.raw({
+    type: [
+      "audio/webm",
+      "video/webm",
+      "audio/wav",
+      "audio/mpeg",
+      "video/mp4",
+      "application/octet-stream"
+    ],
+    limit: "50mb"
+  }),
+  async (req, res) => {
+    const sessionId = (req.query?.sessionId ?? "").toString();
+    const sttUrl =
+      process.env.AEGIS_STT_URL?.trim() || "http://localhost:8000/transcribe";
+
+    if (!sessionId) {
+      return res.status(400).json({ ok: false, error: "Missing sessionId." });
+    }
+
+    if (!req.body || (req.body as Buffer).length === 0) {
+      return res.status(400).json({ ok: false, error: "Missing media payload." });
+    }
+
+    try {
+      const sttResponse = await fetch(sttUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": req.headers["content-type"] ?? "application/octet-stream"
+        },
+        body: req.body as Buffer
+      });
+
+      if (!sttResponse.ok) {
+        const errorText = await sttResponse.text().catch(() => "");
+        return res.status(502).json({
+          ok: false,
+          error: "Transcription service failed.",
+          detail: errorText
+        });
+      }
+
+      const sttPayload = (await sttResponse.json()) as { text?: string };
+      const transcript = (sttPayload?.text ?? "").toString().trim();
+
+      if (!transcript) {
+        return res.status(422).json({ ok: false, error: "Empty transcript returned." });
+      }
+
+      const result = await mirrorManager.reflect(sessionId, transcript);
+      res.json({ ok: true, transcript, ...result });
+    } catch (error) {
+      res.status(500).json({ ok: false, error: "Mirror Media Reflection Fractured" });
+    }
+  }
+);
+
 app.get("/api/witness", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./GlassGate.css";
+import { apiUrl } from "../lib/apiBase";
 
 interface Telemetry {
   flow_energy: number;
@@ -21,7 +22,7 @@ export const GlassGate: React.FC = () => {
   const [data, setData] = useState<Telemetry | null>(null);
 
   useEffect(() => {
-    const eventSource = new EventSource("/api/witness");
+    const eventSource = new EventSource(apiUrl("/witness"));
 
     eventSource.onmessage = (event) => {
       const telemetry = JSON.parse(event.data) as Telemetry;

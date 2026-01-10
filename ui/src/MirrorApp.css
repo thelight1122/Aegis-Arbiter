@@ -9,169 +9,180 @@ body {
 
 .mirror-app-container {
   min-height: 100vh;
+  padding: 24px;
   color: #f4f0e8;
   font-family: "Avenir Next", "Avenir", "Gill Sans", "Trebuchet MS", sans-serif;
-  background: radial-gradient(circle at 20% 20%, rgba(208, 139, 91, 0.15), transparent 45%),
-    radial-gradient(circle at 80% 10%, rgba(96, 138, 122, 0.22), transparent 35%),
-    linear-gradient(120deg, #0d1214 0%, #131b1d 45%, #1b2424 100%);
-  position: relative;
-  overflow: hidden;
-  padding: 28px 28px 40px;
+  background: linear-gradient(140deg, #0d1214 0%, #121a1c 48%, #1a2326 100%);
 }
 
-.mirror-app-container::before,
-.mirror-app-container::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.mirror-app-container::before {
-  inset: -20% -10% auto -10%;
-  height: 60%;
-  background: linear-gradient(140deg, rgba(244, 240, 232, 0.08), transparent 65%);
-  filter: blur(0.5px);
-}
-
-.mirror-app-container::after {
-  width: 520px;
-  height: 520px;
-  right: -120px;
-  bottom: -160px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(208, 139, 91, 0.22), transparent 70%);
-}
-
-.mirror-app-header {
+.mirror-topbar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 24px;
-  position: relative;
-  z-index: 1;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.mirror-app-brand {
-  max-width: 560px;
+.mirror-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.mirror-app-eyebrow {
+.mirror-eyebrow {
+  margin: 0;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-size: 12px;
-  margin: 0 0 8px;
-  color: rgba(244, 240, 232, 0.7);
+  color: rgba(244, 240, 232, 0.65);
 }
 
-.mirror-app-title {
-  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Palatino", serif;
-  font-size: clamp(28px, 3vw, 40px);
-  letter-spacing: 0.02em;
-  margin: 0 0 8px;
-}
-
-.mirror-app-subtitle {
+.mirror-title {
   margin: 0;
-  color: rgba(244, 240, 232, 0.75);
-  font-size: 15px;
-  line-height: 1.5;
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Palatino", serif;
+  font-size: 28px;
+  letter-spacing: 0.03em;
 }
 
-.mirror-app-status {
+.mirror-status {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-.mirror-app-pill {
-  padding: 8px 14px;
+.mirror-pill {
+  padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid rgba(244, 240, 232, 0.2);
-  background: rgba(13, 18, 20, 0.6);
-  font-size: 12px;
+  background: rgba(9, 12, 13, 0.6);
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
-.mirror-app-pill-quiet {
+.mirror-pill-quiet {
   color: rgba(244, 240, 232, 0.6);
 }
 
-.mirror-app-grid {
+.mirror-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) minmax(240px, 320px);
-  gap: 24px;
-  position: relative;
-  z-index: 1;
-}
-
-.mirror-app-sidebar,
-.mirror-app-telemetry,
-.mirror-app-main {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
   gap: 20px;
 }
 
-.mirror-card {
-  background: rgba(15, 20, 22, 0.9);
-  border: 1px solid rgba(244, 240, 232, 0.12);
-  border-radius: 18px;
-  padding: 18px;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(6px);
+.mirror-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.mirror-card-primary {
-  padding: 22px;
-  border: 1px solid rgba(208, 139, 91, 0.35);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(208, 139, 91, 0.08);
+.mirror-card {
+  border-radius: 18px;
+  border: 1px solid rgba(244, 240, 232, 0.12);
+  background: rgba(15, 20, 22, 0.92);
+  padding: 16px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
 }
 
 .mirror-card-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
 .mirror-card-title {
   margin: 0;
-  font-size: 18px;
-  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Palatino", serif;
-  letter-spacing: 0.03em;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
-.mirror-card-subtitle {
-  margin: 8px 0 0;
-  color: rgba(244, 240, 232, 0.7);
-  font-size: 14px;
-}
-
-.mirror-card-meta {
-  align-self: flex-start;
-  padding: 6px 12px;
+.mirror-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(96, 138, 122, 0.15);
-  border: 1px solid rgba(96, 138, 122, 0.4);
+  border: 1px solid rgba(244, 240, 232, 0.2);
+  color: rgba(244, 240, 232, 0.7);
+}
+
+.mirror-muted {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(244, 240, 232, 0.65);
+  line-height: 1.5;
+}
+
+.mirror-recording {
+  margin: 10px 0 0;
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(244, 240, 232, 0.75);
+  letter-spacing: 0.12em;
+  color: rgba(244, 200, 200, 0.85);
+}
+
+.mirror-display {
+  min-height: 320px;
+}
+
+.mirror-output {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mirror-ids-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mirror-lower-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.mirror-chat-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.mirror-telemetry {
+  min-height: 200px;
+}
+
+.mirror-ghost {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 240, 232, 0.18);
+  background: transparent;
+  color: rgba(244, 240, 232, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.mirror-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .mirror-app-journal {
   width: 100%;
-  min-height: 220px;
-  padding: 16px;
-  border-radius: 16px;
+  min-height: 180px;
+  padding: 14px;
+  border-radius: 14px;
   border: 1px solid rgba(244, 240, 232, 0.16);
   background: rgba(9, 12, 13, 0.7);
   color: #f4f0e8;
-  font-size: 15px;
+  font-size: 14px;
   resize: vertical;
   font-family: "Avenir Next", "Avenir", "Gill Sans", "Trebuchet MS", sans-serif;
 }
@@ -182,25 +193,16 @@ body {
   box-shadow: 0 0 0 3px rgba(208, 139, 91, 0.15);
 }
 
-.mirror-app-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-
 .mirror-app-button {
-  padding: 12px 18px;
-  border-radius: 999px;
+  padding: 12px 16px;
+  border-radius: 12px;
   border: 1px solid rgba(208, 139, 91, 0.55);
   background: linear-gradient(120deg, rgba(208, 139, 91, 0.25), rgba(96, 138, 122, 0.2));
   color: #f4f0e8;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  font-size: 12px;
+  font-size: 11px;
   transition: transform 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
 }
 
@@ -213,18 +215,6 @@ body {
   cursor: not-allowed;
   opacity: 0.5;
   transform: none;
-}
-
-.mirror-app-hint {
-  font-size: 12px;
-  color: rgba(244, 240, 232, 0.6);
-}
-
-.mirror-app-ids-section {
-  padding: 20px;
-  border-radius: 16px;
-  background: rgba(18, 23, 25, 0.85);
-  border: 1px solid rgba(96, 138, 122, 0.35);
 }
 
 .mirror-app-error {
@@ -257,8 +247,15 @@ body {
   font-size: 15px;
 }
 
+.mirror-insight-list {
+  margin: 0;
+  padding-left: 18px;
+  color: rgba(244, 240, 232, 0.85);
+  line-height: 1.6;
+}
+
 .mirror-insight-alignment {
-  margin: 12px 0 0;
+  margin: 0;
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(9, 12, 13, 0.6);
@@ -267,8 +264,13 @@ body {
   color: rgba(244, 240, 232, 0.85);
 }
 
+.mirror-insight-empty {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(244, 240, 232, 0.65);
+}
+
 .mirror-emotion-card {
-  margin-top: 12px;
   padding: 12px;
   border-radius: 12px;
   background: rgba(9, 12, 13, 0.6);
@@ -322,72 +324,22 @@ body {
   color: rgba(244, 240, 232, 0.65);
 }
 
-.mirror-insight-empty {
-  margin: 12px 0 0;
-  font-size: 13px;
-  color: rgba(244, 240, 232, 0.65);
-}
-
-.mirror-insight-list {
-  margin: 0;
-  padding-left: 18px;
-  color: rgba(244, 240, 232, 0.85);
-  line-height: 1.6;
-}
-
-.mirror-ritual ol {
-  margin: 12px 0 0;
-  padding-left: 18px;
-  color: rgba(244, 240, 232, 0.75);
-  line-height: 1.6;
-}
-
-.mirror-animate-1 {
-  animation: mirror-reveal 0.8s ease both;
-}
-
-.mirror-animate-2 {
-  animation: mirror-reveal 0.8s ease both;
-  animation-delay: 0.1s;
-}
-
-.mirror-animate-3 {
-  animation: mirror-reveal 0.8s ease both;
-  animation-delay: 0.2s;
-}
-
-@keyframes mirror-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (max-width: 1100px) {
-  .mirror-app-grid {
+  .mirror-layout {
     grid-template-columns: 1fr;
   }
 
-  .mirror-app-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .mirror-lower-row {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
   .mirror-app-container {
-    padding: 20px 18px 32px;
+    padding: 18px;
   }
 
-  .mirror-card-header {
-    flex-direction: column;
-  }
-
-  .mirror-app-actions {
+  .mirror-topbar {
     flex-direction: column;
     align-items: flex-start;
   }

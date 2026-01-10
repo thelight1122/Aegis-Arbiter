@@ -1,19 +1,14 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import "./MirrorApp.css";
 import { GlassGate } from './components/GlassGate';
 import { TrajectoryMap } from './components/TrajectoryMap';
 import { SpineExplorer } from './components/SpineExplorer';
+import { apiUrl } from "./lib/apiBase";
 
 const styles = {
   container: "mirror-app-container",
-  grid: "mirror-app-grid",
-  header: "mirror-app-header",
-  sidebar: "mirror-app-sidebar",
-  main: "mirror-app-main",
   journal: "mirror-app-journal",
   button: "mirror-app-button",
-  idsSection: "mirror-app-ids-section",
-  telemetry: "mirror-app-telemetry",
 };
 
 /**
@@ -22,6 +17,7 @@ const styles = {
  */
 export const MirrorApp: React.FC = () => {
   const [reflection, setReflection] = useState("");
+  const [transcript, setTranscript] = useState<string | null>(null);
   const [idsBlock, setIdsBlock] = useState<any>(null);
   const [alignment, setAlignment] = useState<string | null>(null);
   const [lenses, setLenses] = useState<{
@@ -33,6 +29,14 @@ export const MirrorApp: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId] = useState(`mirror_${Date.now()}`);
+  const [recordingMode, setRecordingMode] = useState<"audio" | "video" | null>(null);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timeoutRef = useRef<number | null>(null);
+  const timerRef = useRef<number | null>(null);
+
+  const MAX_RECORDING_MS = 3 * 60 * 1000;
 
   const describeLevel = (value?: number) => {
     if (typeof value !== "number") return "Unknown";
@@ -64,6 +68,15 @@ export const MirrorApp: React.FC = () => {
     return hasValue ? { physical, emotional, mental, spiritual } : null;
   };
 
+  const applyMirrorResponse = (data: any, fallbackTranscript?: string) => {
+    setIdsBlock(data?.ids ?? null);
+    setAlignment(data?.alignment ?? null);
+    const nextLenses =
+      normalizeLenses(data?.lenses) ?? normalizeLenses(data?.telemetry?.lenses);
+    setLenses(nextLenses);
+    setTranscript((data?.transcript ?? fallbackTranscript ?? "").trim() || null);
+  };
+
   const handleInhale = async () => {
     // Fulfills AXIOM_6_CHOICE to initiate processing
     const trimmed = reflection.trim();
@@ -75,7 +88,7 @@ export const MirrorApp: React.FC = () => {
     setError(null);
 
     try {
-      const res = await fetch("/api/mirror/reflect", {
+      const res = await fetch(apiUrl("/mirror/reflect"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, text: trimmed })
@@ -87,18 +100,17 @@ export const MirrorApp: React.FC = () => {
         setIdsBlock(null);
         setAlignment(null);
         setLenses(null);
+        setTranscript(null);
         return;
       }
 
-      setIdsBlock(data.ids ?? null);
-      setAlignment(data.alignment ?? null);
-      const nextLenses = normalizeLenses(data?.lenses) ?? normalizeLenses(data?.telemetry?.lenses);
-      setLenses(nextLenses);
+      applyMirrorResponse(data, trimmed);
     } catch (err) {
       setError("Unable to reach the mirror service.");
       setIdsBlock(null);
       setAlignment(null);
       setLenses(null);
+      setTranscript(null);
     } finally {
       setIsLoading(false);
     }
@@ -107,64 +119,181 @@ export const MirrorApp: React.FC = () => {
   const canInhale = reflection.trim().length > 0 && !isLoading;
   const emotionalValue = lenses?.emotional;
   const emotionalTone = levelTone(emotionalValue);
+  const hasOutput = Boolean(idsBlock || alignment || lenses);
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const startRecording = async (mode: "audio" | "video") => {
+    if (recordingMode || isLoading) return;
+    setError(null);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Recording is not supported in this browser.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: mode === "video"
+      });
+
+      const preferredType = mode === "video" ? "video/webm" : "audio/webm";
+      const options =
+        MediaRecorder.isTypeSupported(preferredType) ? { mimeType: preferredType } : undefined;
+
+      const recorder = new MediaRecorder(stream, options);
+      chunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+        if (timerRef.current) window.clearInterval(timerRef.current);
+
+        const recordedChunks = chunksRef.current;
+        chunksRef.current = [];
+        setRecordingMode(null);
+        setRecordingSeconds(0);
+
+        if (recordedChunks.length === 0) {
+          setError("No recording data captured.");
+          return;
+        }
+
+        const blob = new Blob(recordedChunks, { type: recorder.mimeType });
+        setIsLoading(true);
+        setError(null);
+
+        try {
+          const res = await fetch(
+            apiUrl(`/mirror/reflect-media?sessionId=${sessionId}`),
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": blob.type || "application/octet-stream"
+              },
+              body: blob
+            }
+          );
+          const data = await res.json();
+
+          if (!res.ok || data?.ok === false) {
+            setError(data?.error ?? "Mirror reflection failed.");
+            setIdsBlock(null);
+            setAlignment(null);
+            setLenses(null);
+            setTranscript(null);
+            return;
+          }
+
+          applyMirrorResponse(data);
+        } catch (err) {
+          setError("Unable to reach the mirror service.");
+          setIdsBlock(null);
+          setAlignment(null);
+          setLenses(null);
+          setTranscript(null);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setRecordingMode(mode);
+      setRecordingSeconds(0);
+
+      timerRef.current = window.setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+
+      timeoutRef.current = window.setTimeout(() => {
+        stopRecording();
+      }, MAX_RECORDING_MS);
+    } catch (err) {
+      setError("Microphone or camera access was denied.");
+    }
+  };
+
+  const toggleRecording = (mode: "audio" | "video") => {
+    if (recordingMode === mode) {
+      stopRecording();
+    } else {
+      startRecording(mode);
+    }
+  };
+
+  const formatRecordingTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const handleClear = () => {
+    setReflection("");
+    setIdsBlock(null);
+    setAlignment(null);
+    setLenses(null);
+    setTranscript(null);
+    setError(null);
+  };
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <div className="mirror-app-brand">
-          <p className="mirror-app-eyebrow">Mirror Reflect Connect</p>
-          <h1 className="mirror-app-title">Mirror Field Interface</h1>
-          <p className="mirror-app-subtitle">
-            Tune your reflection, map the drift, and reconnect to your signal.
-          </p>
+      <header className="mirror-topbar">
+        <div className="mirror-brand">
+          <p className="mirror-eyebrow">Mirror Reflect Connect</p>
+          <h1 className="mirror-title">Reflection Interface</h1>
         </div>
-        <div className="mirror-app-status">
-          <span className="mirror-app-pill">Session {sessionId}</span>
-          <span className="mirror-app-pill mirror-app-pill-quiet">Coherence live</span>
+        <div className="mirror-status">
+          <span className="mirror-pill">Session {sessionId}</span>
+          <span className="mirror-pill mirror-pill-quiet">Coherence live</span>
         </div>
       </header>
 
-      <div className={styles.grid}>
-        {/* Sidebar: Historical Perspective */}
-        <aside className={styles.sidebar}>
-          <div className="mirror-card mirror-animate-1">
-            <TrajectoryMap sessionId={sessionId} />
-          </div>
-          <div className="mirror-card mirror-animate-2">
-            <SpineExplorer sessionId={sessionId} />
-          </div>
-        </aside>
-
-        {/* Center: The Interactive Mirror */}
-        <main className={styles.main}>
-          <section className="mirror-card mirror-card-primary mirror-animate-1">
+      <div className="mirror-layout">
+        <section className="mirror-column mirror-left">
+          <div className="mirror-card mirror-transcript">
             <div className="mirror-card-header">
-              <div>
-                <h2 className="mirror-card-title">Reflection chamber</h2>
-                <p className="mirror-card-subtitle">
-                  Capture the current signal, then inhale to surface your axioms.
-                </p>
-              </div>
-              <div className="mirror-card-meta">Focus window: 12 minutes</div>
+              <h2 className="mirror-card-title">Audio transcript</h2>
+              <span className="mirror-badge">
+                {recordingMode ? `Recording ${recordingMode}` : "Listening"}
+              </span>
             </div>
-            <textarea 
-              value={reflection}
-              onChange={(e) => setReflection(e.target.value)}
-              placeholder="Begin your reflection..."
-              className={styles.journal}
-            />
-            <div className="mirror-app-actions">
-              <button onClick={handleInhale} className={styles.button} disabled={!canInhale}>
-                {isLoading ? "Inhaling..." : "Initiate inhale"}
-              </button>
-              <div className="mirror-app-hint">Save a clear intent before continuing.</div>
-            </div>
-            {error && <div className="mirror-app-error">{error}</div>}
-          </section>
+            <p className="mirror-muted">
+              {transcript
+                ? transcript
+                : reflection
+                  ? reflection
+                  : "Transcript will appear here when audio capture is enabled."}
+            </p>
+            {recordingMode && (
+              <p className="mirror-recording">
+                {formatRecordingTime(recordingSeconds)} / 3:00 max
+              </p>
+            )}
+          </div>
 
-          {(idsBlock || alignment || lenses) && (
-            <section className={`${styles.idsSection} mirror-animate-2`}>
-              <h3 className="mirror-card-title">Chamber response</h3>
+          <div className="mirror-card mirror-display">
+            <div className="mirror-card-header">
+              <h2 className="mirror-card-title">Reflection mirror</h2>
+              <span className="mirror-badge">Output</span>
+            </div>
+            <div className="mirror-output">
+              {!hasOutput && (
+                <p className="mirror-muted">
+                  Reflection output will render here after initiation.
+                </p>
+              )}
               {alignment && (
                 <p className="mirror-insight-alignment">{alignment}</p>
               )}
@@ -185,7 +314,7 @@ export const MirrorApp: React.FC = () => {
                 </div>
               )}
               {idsBlock ? (
-                <>
+                <div className="mirror-ids-block">
                   <div className="mirror-insight-grid">
                     <div>
                       <p className="mirror-insight-label">Identify</p>
@@ -201,28 +330,86 @@ export const MirrorApp: React.FC = () => {
                       <li key={i}>{s}</li>
                     ))}
                   </ul>
-                </>
+                </div>
               ) : (
-                <p className="mirror-insight-empty">
-                  Reflection received. The mirror has no axioms to surface yet.
-                </p>
+                hasOutput && (
+                  <p className="mirror-insight-empty">
+                    Reflection received. The mirror has no axioms to surface yet.
+                  </p>
+                )
               )}
-            </section>
-          )}
-        </main>
-
-        {/* Right: Real-time Awareness (The Glass Gate) */}
-        <aside className={styles.telemetry}>
-          <div className="mirror-card mirror-animate-1">
-            <GlassGate />
+            </div>
           </div>
-          <div className="mirror-card mirror-animate-3 mirror-ritual">
-            <h3 className="mirror-card-title">Connection ritual</h3>
-            <ol>
-              <li>Notice the strongest lens and name it.</li>
-              <li>Mirror the tension without judgment.</li>
-              <li>Choose one action that restores balance.</li>
-            </ol>
+
+          <div className="mirror-lower-row">
+            <div className="mirror-card">
+              <h3 className="mirror-card-title">ST recordings</h3>
+              <TrajectoryMap sessionId={sessionId} />
+            </div>
+            <div className="mirror-card">
+              <h3 className="mirror-card-title">Past records</h3>
+              <SpineExplorer sessionId={sessionId} />
+            </div>
+          </div>
+        </section>
+
+        <aside className="mirror-column mirror-right">
+          <div className="mirror-card mirror-chat">
+            <div className="mirror-card-header">
+              <h2 className="mirror-card-title">Reflection chamber chat</h2>
+              <span className="mirror-badge">Input</span>
+            </div>
+            <textarea 
+              value={reflection}
+              onChange={(e) => setReflection(e.target.value)}
+              placeholder="Begin your reflection..."
+              className={styles.journal}
+            />
+            <div className="mirror-chat-actions">
+              <button
+                type="button"
+                onClick={handleInhale}
+                className={styles.button}
+                disabled={!canInhale}
+              >
+                {isLoading ? "Inhaling..." : "Initiate"}
+              </button>
+              <button type="button" className="mirror-ghost" onClick={handleClear}>
+                Clear
+              </button>
+              <button
+                type="button"
+                className="mirror-ghost"
+                onClick={() => toggleRecording("audio")}
+                disabled={isLoading || (recordingMode !== null && recordingMode !== "audio")}
+              >
+                <span>
+                  {recordingMode === "audio" ? "Stop audio" : "Audio record"}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="mirror-ghost"
+                onClick={() => toggleRecording("video")}
+                disabled={isLoading || (recordingMode !== null && recordingMode !== "video")}
+              >
+                <span>
+                  {recordingMode === "video" ? "Stop video" : "Video record"}
+                </span>
+              </button>
+              <button type="button" className="mirror-ghost" onClick={handleClear}>
+                Clear chat window
+              </button>
+              <button type="button" className="mirror-ghost" disabled={!hasOutput}>
+                Download report
+              </button>
+            </div>
+            {error && <div className="mirror-app-error">{error}</div>}
+          </div>
+
+          <div className="mirror-card mirror-telemetry">
+            <h3 className="mirror-card-title">Peer status audio</h3>
+            <GlassGate />
           </div>
         </aside>
       </div>

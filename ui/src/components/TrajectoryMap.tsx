@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './TrajectoryMap.css';
+import { apiUrl } from '../lib/apiBase';
 
 /**
  * TrajectoryMap visualizes the path toward AXIOM_1_BALANCE.
@@ -10,7 +11,7 @@ export const TrajectoryMap: React.FC<{ sessionId: string }> = ({ sessionId }) =>
 
   useEffect(() => {
     // Fetches the calculated trend from the SovereigntyProgressService
-    fetch(`/api/progress?sessionId=${sessionId}`)
+    fetch(apiUrl(`/progress?sessionId=${sessionId}`))
       .then(res => res.json())
       .then(data => setTrend(data.trend));
   }, [sessionId]);

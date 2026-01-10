@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './SpineExplorer.css';
+import { apiUrl } from '../lib/apiBase';
 
 /**
  * The SpineExplorer allows the peer to browse the Logic Spine.
@@ -9,7 +10,7 @@ export const SpineExplorer: React.FC<{ sessionId: string }> = ({ sessionId }) =>
   const [history, setHistory] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`/api/ledger?sessionId=${sessionId}`)
+    fetch(apiUrl(`/ledger?sessionId=${sessionId}`))
       .then(res => res.json())
       .then(data => setHistory(data.tensors || []));
   }, [sessionId]);

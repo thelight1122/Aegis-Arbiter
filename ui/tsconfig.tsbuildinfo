@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/mirrorapp.tsx","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/glassgate.tsx","./src/components/spineexplorer.tsx","./src/components/trajectorymap.tsx","./src/lib/api.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/mirrorapp.tsx","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/glassgate.tsx","./src/components/spineexplorer.tsx","./src/components/trajectorymap.tsx","./src/lib/api.ts","./src/lib/apibase.ts"],"version":"5.9.3"}
