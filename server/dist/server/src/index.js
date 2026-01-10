@@ -94,7 +94,9 @@ app.post("/api/mirror/reflect", async (req, res) => {
         res.json({ ok: true, ...result });
     }
     catch (error) {
-        res.status(500).json({ ok: false, error: "Mirror Reflection Fractured" });
+        console.error("Mirror reflection failed:", error);
+        const message = error instanceof Error ? error.message : "Unknown error";
+        res.status(500).json({ ok: false, error: "Mirror Reflection Fractured", detail: message });
     }
 });
 app.post("/api/mirror/reflect-media", express.raw({

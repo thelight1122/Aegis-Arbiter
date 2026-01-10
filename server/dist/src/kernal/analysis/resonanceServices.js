@@ -44,7 +44,8 @@ export class ResonanceService {
         // This is a placeholder implementation.
         // In a real implementation, this would involve a more complex calculation
         // based on the history of the conversation.
-        const delta = Math.random();
+        const text = (ptTensor.state.payload.text ?? ptTensor.state.payload.summary ?? "").trim();
+        const delta = text ? this.hashToUnit(text) : 0;
         const drivers = {
             drift_risk: delta,
             spine_coherence: Math.max(0, 1 - delta),
@@ -57,6 +58,14 @@ export class ResonanceService {
             drivers,
             baseline_used: false,
         };
+    }
+    hashToUnit(input) {
+        let hash = 5381;
+        for (let i = 0; i < input.length; i += 1) {
+            hash = (hash * 33) ^ input.charCodeAt(i);
+        }
+        const normalized = Math.abs(hash >>> 0) / 0xffffffff;
+        return Number.isFinite(normalized) ? normalized : 0;
     }
 }
 //# sourceMappingURL=resonanceServices.js.map

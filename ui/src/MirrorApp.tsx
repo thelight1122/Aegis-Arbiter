@@ -20,6 +20,7 @@ export const MirrorApp: React.FC = () => {
   const [transcript, setTranscript] = useState<string | null>(null);
   const [idsBlock, setIdsBlock] = useState<any>(null);
   const [alignment, setAlignment] = useState<string | null>(null);
+  const [analysisStatus, setAnalysisStatus] = useState<string | null>(null);
   const [lenses, setLenses] = useState<{
     physical?: number;
     emotional?: number;
@@ -33,6 +34,11 @@ export const MirrorApp: React.FC = () => {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const animationRef = useRef<number | null>(null);
   const timeoutRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
 
@@ -68,6 +74,41 @@ export const MirrorApp: React.FC = () => {
     return hasValue ? { physical, emotional, mental, spiritual } : null;
   };
 
+  const formatAlignment = (raw: string | null, emotional?: number) => {
+    if (!raw) return null;
+    const match = raw.match(/Delta=([0-9.]+)/i);
+    const delta = match ? Number.parseFloat(match[1]) : null;
+    const emotionScore = typeof emotional === "number" ? emotional : null;
+
+    if (delta !== null && !Number.isNaN(delta)) {
+      if (delta >= 0.8) {
+        return "Peer emotional state shows acute tension and destabilization. Focus on grounding and safety.";
+      }
+      if (delta >= 0.55) {
+        return "Peer emotional state shows elevated strain. Provide calm, specific support.";
+      }
+      if (delta >= 0.3) {
+        return "Peer emotional state shows mild friction. Invite reflection and gentle pacing.";
+      }
+      return "Peer emotional state appears steady. Encourage continued clarity and choice.";
+    }
+
+    if (emotionScore !== null) {
+      if (emotionScore >= 0.75) {
+        return "Peer emotional state is energized and expressive. Channel toward constructive action.";
+      }
+      if (emotionScore >= 0.45) {
+        return "Peer emotional state is stable with manageable tension. Maintain steady support.";
+      }
+      if (emotionScore >= 0.25) {
+        return "Peer emotional state is low and guarded. Offer reassurance and space.";
+      }
+      return "Peer emotional state is depleted. Prioritize rest and emotional safety.";
+    }
+
+    return raw;
+  };
+
   const applyMirrorResponse = (data: any, fallbackTranscript?: string) => {
     setIdsBlock(data?.ids ?? null);
     setAlignment(data?.alignment ?? null);
@@ -75,6 +116,83 @@ export const MirrorApp: React.FC = () => {
       normalizeLenses(data?.lenses) ?? normalizeLenses(data?.telemetry?.lenses);
     setLenses(nextLenses);
     setTranscript((data?.transcript ?? fallbackTranscript ?? "").trim() || null);
+    setAnalysisStatus("Analysis complete.");
+  };
+
+  const startWaveform = (stream: MediaStream) => {
+    if (!canvasRef.current) return;
+    const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const audioContext = new AudioContextConstructor();
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+
+    audioContextRef.current = audioContext;
+    analyserRef.current = analyser;
+    sourceRef.current = source;
+
+    const canvas = canvasRef.current;
+    const canvasCtx = canvas.getContext("2d");
+    if (!canvasCtx) return;
+
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const draw = () => {
+      if (!canvasRef.current || !analyserRef.current) return;
+      analyserRef.current.getByteTimeDomainData(dataArray);
+
+      canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeStyle = "rgba(244, 200, 200, 0.9)";
+      canvasCtx.beginPath();
+
+      const sliceWidth = canvas.width / bufferLength;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i += 1) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+
+        if (i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+
+        x += sliceWidth;
+      }
+
+      canvasCtx.lineTo(canvas.width, canvas.height / 2);
+      canvasCtx.stroke();
+
+      animationRef.current = window.requestAnimationFrame(draw);
+    };
+
+    draw();
+  };
+
+  const stopWaveform = () => {
+    if (animationRef.current) {
+      window.cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    if (sourceRef.current) {
+      sourceRef.current.disconnect();
+      sourceRef.current = null;
+    }
+    if (analyserRef.current) {
+      analyserRef.current.disconnect();
+      analyserRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
   };
 
   const handleInhale = async () => {
@@ -86,6 +204,8 @@ export const MirrorApp: React.FC = () => {
 
     setIsLoading(true);
     setError(null);
+    setTranscript(trimmed);
+    setAnalysisStatus("Analyzing input...");
 
     try {
       const res = await fetch(apiUrl("/mirror/reflect"), {
@@ -101,6 +221,7 @@ export const MirrorApp: React.FC = () => {
         setAlignment(null);
         setLenses(null);
         setTranscript(null);
+        setAnalysisStatus("Analysis failed.");
         return;
       }
 
@@ -111,6 +232,7 @@ export const MirrorApp: React.FC = () => {
       setAlignment(null);
       setLenses(null);
       setTranscript(null);
+      setAnalysisStatus("Analysis failed.");
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +241,11 @@ export const MirrorApp: React.FC = () => {
   const canInhale = reflection.trim().length > 0 && !isLoading;
   const emotionalValue = lenses?.emotional;
   const emotionalTone = levelTone(emotionalValue);
-  const hasOutput = Boolean(idsBlock || alignment || lenses);
+  const hasIds =
+    Boolean(idsBlock?.identify) ||
+    Boolean(idsBlock?.define) ||
+    (Array.isArray(idsBlock?.suggest) && idsBlock.suggest.length > 0);
+  const hasOutput = Boolean(idsBlock || alignment || lenses || analysisStatus);
 
   const stopRecording = () => {
     if (mediaRecorderRef.current?.state === "recording") {
@@ -130,6 +256,7 @@ export const MirrorApp: React.FC = () => {
   const startRecording = async (mode: "audio" | "video") => {
     if (recordingMode || isLoading) return;
     setError(null);
+    setAnalysisStatus(null);
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setError("Recording is not supported in this browser.");
@@ -156,6 +283,7 @@ export const MirrorApp: React.FC = () => {
 
       recorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
+        stopWaveform();
         if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
         if (timerRef.current) window.clearInterval(timerRef.current);
 
@@ -172,6 +300,7 @@ export const MirrorApp: React.FC = () => {
         const blob = new Blob(recordedChunks, { type: recorder.mimeType });
         setIsLoading(true);
         setError(null);
+        setAnalysisStatus("Transcribing and analyzing...");
 
         try {
           const res = await fetch(
@@ -192,6 +321,7 @@ export const MirrorApp: React.FC = () => {
             setAlignment(null);
             setLenses(null);
             setTranscript(null);
+            setAnalysisStatus("Analysis failed.");
             return;
           }
 
@@ -202,6 +332,7 @@ export const MirrorApp: React.FC = () => {
           setAlignment(null);
           setLenses(null);
           setTranscript(null);
+          setAnalysisStatus("Analysis failed.");
         } finally {
           setIsLoading(false);
         }
@@ -211,6 +342,7 @@ export const MirrorApp: React.FC = () => {
       mediaRecorderRef.current = recorder;
       setRecordingMode(mode);
       setRecordingSeconds(0);
+      startWaveform(stream);
 
       timerRef.current = window.setInterval(() => {
         setRecordingSeconds((prev) => prev + 1);
@@ -238,6 +370,39 @@ export const MirrorApp: React.FC = () => {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const handleDownloadReport = () => {
+    const lines = [
+      "# Mirror Reflect Connect Report",
+      `Session: ${sessionId}`,
+      `Generated: ${new Date().toISOString()}`,
+      analysisStatus ? `Status: ${analysisStatus}` : "Status: unknown",
+      "",
+      "## Transcript",
+      transcript ?? "(none)",
+      "",
+      "## Alignment",
+      alignment ?? "(none)",
+      "",
+      "## Emotional State",
+      typeof emotionalValue === "number"
+        ? `${Math.round(emotionalValue * 100)}% (${describeLevel(emotionalValue)})`
+        : "(none)",
+      "",
+      "## IDS",
+      idsBlock
+        ? `Identify: ${idsBlock.identify}\nDefine: ${idsBlock.define}\nSuggest:\n- ${idsBlock.suggest.join("\n- ")}`
+        : "(none)"
+    ];
+
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `mirror-report-${sessionId}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleClear = () => {
     setReflection("");
     setIdsBlock(null);
@@ -245,6 +410,7 @@ export const MirrorApp: React.FC = () => {
     setLenses(null);
     setTranscript(null);
     setError(null);
+    setAnalysisStatus(null);
   };
 
   return (
@@ -269,6 +435,7 @@ export const MirrorApp: React.FC = () => {
                 {recordingMode ? `Recording ${recordingMode}` : "Listening"}
               </span>
             </div>
+            <canvas className="mirror-waveform" ref={canvasRef} width={520} height={80} />
             <p className="mirror-muted">
               {transcript
                 ? transcript
@@ -289,31 +456,43 @@ export const MirrorApp: React.FC = () => {
               <span className="mirror-badge">Output</span>
             </div>
             <div className="mirror-output">
+              {analysisStatus && <p className="mirror-status-line">{analysisStatus}</p>}
               {!hasOutput && (
                 <p className="mirror-muted">
                   Reflection output will render here after initiation.
                 </p>
               )}
               {alignment && (
-                <p className="mirror-insight-alignment">{alignment}</p>
+                <p className="mirror-insight-alignment">
+                  {formatAlignment(alignment, emotionalValue) ?? alignment}
+                </p>
               )}
-              {typeof emotionalValue === "number" && (
+              {(typeof emotionalValue === "number" || hasIds) && (
                 <div className="mirror-emotion-card">
                   <p className="mirror-insight-label">Peer emotional state</p>
-                  <div className="mirror-emotion-row">
-                    <span className="mirror-emotion-value">
-                      {Math.round(emotionalValue * 100)}%
-                    </span>
-                    <span className={`mirror-emotion-level mirror-emotion-${emotionalTone}`}>
-                      {describeLevel(emotionalValue)}
-                    </span>
-                  </div>
-                  <p className="mirror-emotion-note">
-                    Resonance from the emotional lens; grounded in current telemetry.
+                  <p className="mirror-emotion-summary">
+                    {hasIds
+                      ? idsBlock.identify
+                      : "Telemetry snapshot only. IDS language not available yet."}
                   </p>
+                  {typeof emotionalValue === "number" && (
+                    <div className="mirror-emotion-row">
+                      <span className="mirror-emotion-value">
+                        {Math.round(emotionalValue * 100)}%
+                      </span>
+                      <span className={`mirror-emotion-level mirror-emotion-${emotionalTone}`}>
+                        {describeLevel(emotionalValue)}
+                      </span>
+                    </div>
+                  )}
+                  {typeof emotionalValue === "number" && (
+                    <p className="mirror-emotion-note">
+                      Emotional lens meter (telemetry).
+                    </p>
+                  )}
                 </div>
               )}
-              {idsBlock ? (
+              {hasIds ? (
                 <div className="mirror-ids-block">
                   <div className="mirror-insight-grid">
                     <div>
@@ -331,13 +510,7 @@ export const MirrorApp: React.FC = () => {
                     ))}
                   </ul>
                 </div>
-              ) : (
-                hasOutput && (
-                  <p className="mirror-insight-empty">
-                    Reflection received. The mirror has no axioms to surface yet.
-                  </p>
-                )
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -400,7 +573,12 @@ export const MirrorApp: React.FC = () => {
               <button type="button" className="mirror-ghost" onClick={handleClear}>
                 Clear chat window
               </button>
-              <button type="button" className="mirror-ghost" disabled={!hasOutput}>
+              <button
+                type="button"
+                className="mirror-ghost"
+                disabled={!hasOutput}
+                onClick={handleDownloadReport}
+              >
                 Download report
               </button>
             </div>

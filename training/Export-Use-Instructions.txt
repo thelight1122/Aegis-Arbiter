@@ -1,0 +1,9 @@
+4) Optional: Export & Use in LMStudio
+
+Once training is complete:
+
+Convert the trained checkpoint into a format LMStudio accepts (e.g., GGML).
+
+Load the model in LMStudio.
+
+Use the interactive prompt template above for inference.
