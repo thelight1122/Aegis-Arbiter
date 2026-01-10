@@ -1,9 +1,17 @@
-import React, { useRef, useState } from 'react';
+// FILE: ui/src/MirrorApp.tsx
+
+import React, { useRef, useState } from "react";
 import "./MirrorApp.css";
-import { GlassGate } from './components/GlassGate';
-import { TrajectoryMap } from './components/TrajectoryMap';
-import { SpineExplorer } from './components/SpineExplorer';
+import { GlassGate } from "./components/GlassGate";
+import { TrajectoryMap } from "./components/TrajectoryMap";
+import { SpineExplorer } from "./components/SpineExplorer";
 import { apiUrl } from "./lib/apiBase";
+
+// ✅ Linq-style report renderer
+import ReportOutput, {
+  type AegisEngineResult,
+  type ReportType,
+} from "./components/ReportOutput";
 
 const styles = {
   container: "mirror-app-container",
@@ -30,8 +38,18 @@ export const MirrorApp: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId] = useState(`mirror_${Date.now()}`);
-  const [recordingMode, setRecordingMode] = useState<"audio" | "video" | null>(null);
+  const [recordingMode, setRecordingMode] = useState<"audio" | "video" | null>(
+    null
+  );
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+
+  // ✅ New: Linq-style report state
+  const [reportHistory, setReportHistory] = useState<AegisEngineResult[]>([]);
+  const [reportType, setReportType] = useState<ReportType>("single");
+
+  // ✅ New: Debug — store last raw response
+  const [lastResponse, setLastResponse] = useState<any>(null);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -109,19 +127,55 @@ export const MirrorApp: React.FC = () => {
     return raw;
   };
 
+  // ✅ Detect whether ids payload supports Linq-style report rendering
+  const isReportCapableIds = (ids: any): ids is AegisEngineResult => {
+    if (!ids || typeof ids !== "object") return false;
+    const peerWeightsOk =
+      Array.isArray(ids.peerWeights) &&
+      ids.peerWeights.length === 7 &&
+      ids.peerWeights.every((n: any) => typeof n === "number");
+    return (
+      peerWeightsOk &&
+      typeof ids.logic === "number" &&
+      typeof ids.emotion === "number" &&
+      typeof ids.moodType === "string" &&
+      typeof ids.keyAxiom === "number" &&
+      typeof ids.peerSummary === "string" &&
+      typeof ids.suggestText === "string" &&
+      typeof ids.isFractured === "boolean"
+    );
+  };
+
   const applyMirrorResponse = (data: any, fallbackTranscript?: string) => {
+    setLastResponse(data);
+
+    const nextTranscript =
+      (data?.transcript ?? fallbackTranscript ?? "").trim() || null;
+
     setIdsBlock(data?.ids ?? null);
     setAlignment(data?.alignment ?? null);
+
     const nextLenses =
       normalizeLenses(data?.lenses) ?? normalizeLenses(data?.telemetry?.lenses);
     setLenses(nextLenses);
-    setTranscript((data?.transcript ?? fallbackTranscript ?? "").trim() || null);
+
+    setTranscript(nextTranscript);
     setAnalysisStatus("Analysis complete.");
+
+    // ✅ If the API returns the richer Linq-style shape, capture it into report history
+    if (isReportCapableIds(data?.ids)) {
+      const enriched: AegisEngineResult = {
+        ...data.ids,
+        vector: nextTranscript ?? fallbackTranscript ?? "",
+      };
+      setReportHistory((prev) => [...prev, enriched]);
+    }
   };
 
   const startWaveform = (stream: MediaStream) => {
     if (!canvasRef.current) return;
-    const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextConstructor =
+      window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextConstructor) return;
 
     const audioContext = new AudioContextConstructor();
@@ -158,11 +212,8 @@ export const MirrorApp: React.FC = () => {
         const v = dataArray[i] / 128.0;
         const y = (v * canvas.height) / 2;
 
-        if (i === 0) {
-          canvasCtx.moveTo(x, y);
-        } else {
-          canvasCtx.lineTo(x, y);
-        }
+        if (i === 0) canvasCtx.moveTo(x, y);
+        else canvasCtx.lineTo(x, y);
 
         x += sliceWidth;
       }
@@ -196,11 +247,8 @@ export const MirrorApp: React.FC = () => {
   };
 
   const handleInhale = async () => {
-    // Fulfills AXIOM_6_CHOICE to initiate processing
     const trimmed = reflection.trim();
-    if (!trimmed || isLoading) {
-      return;
-    }
+    if (!trimmed || isLoading) return;
 
     setIsLoading(true);
     setError(null);
@@ -211,7 +259,7 @@ export const MirrorApp: React.FC = () => {
       const res = await fetch(apiUrl("/mirror/reflect"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, text: trimmed })
+        body: JSON.stringify({ sessionId, text: trimmed }),
       });
       const data = await res.json();
 
@@ -222,17 +270,19 @@ export const MirrorApp: React.FC = () => {
         setLenses(null);
         setTranscript(null);
         setAnalysisStatus("Analysis failed.");
+        setLastResponse(data);
         return;
       }
 
       applyMirrorResponse(data, trimmed);
-    } catch (err) {
+    } catch {
       setError("Unable to reach the mirror service.");
       setIdsBlock(null);
       setAlignment(null);
       setLenses(null);
       setTranscript(null);
       setAnalysisStatus("Analysis failed.");
+      setLastResponse(null);
     } finally {
       setIsLoading(false);
     }
@@ -241,11 +291,14 @@ export const MirrorApp: React.FC = () => {
   const canInhale = reflection.trim().length > 0 && !isLoading;
   const emotionalValue = lenses?.emotional;
   const emotionalTone = levelTone(emotionalValue);
+
   const hasIds =
     Boolean(idsBlock?.identify) ||
     Boolean(idsBlock?.define) ||
     (Array.isArray(idsBlock?.suggest) && idsBlock.suggest.length > 0);
-  const hasOutput = Boolean(idsBlock || alignment || lenses || analysisStatus);
+
+  const hasReport = reportHistory.length > 0;
+  const hasOutput = Boolean(idsBlock || alignment || lenses || analysisStatus || hasReport);
 
   const stopRecording = () => {
     if (mediaRecorderRef.current?.state === "recording") {
@@ -266,19 +319,19 @@ export const MirrorApp: React.FC = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: mode === "video"
+        video: mode === "video",
       });
 
       const preferredType = mode === "video" ? "video/webm" : "audio/webm";
-      const options =
-        MediaRecorder.isTypeSupported(preferredType) ? { mimeType: preferredType } : undefined;
+      const options = MediaRecorder.isTypeSupported(preferredType)
+        ? { mimeType: preferredType }
+        : undefined;
 
       const recorder = new MediaRecorder(stream, options);
       chunksRef.current = [];
+
       recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
+        if (event.data && event.data.size > 0) chunksRef.current.push(event.data);
       };
 
       recorder.onstop = async () => {
@@ -308,9 +361,9 @@ export const MirrorApp: React.FC = () => {
             {
               method: "POST",
               headers: {
-                "Content-Type": blob.type || "application/octet-stream"
+                "Content-Type": blob.type || "application/octet-stream",
               },
-              body: blob
+              body: blob,
             }
           );
           const data = await res.json();
@@ -322,17 +375,19 @@ export const MirrorApp: React.FC = () => {
             setLenses(null);
             setTranscript(null);
             setAnalysisStatus("Analysis failed.");
+            setLastResponse(data);
             return;
           }
 
           applyMirrorResponse(data);
-        } catch (err) {
+        } catch {
           setError("Unable to reach the mirror service.");
           setIdsBlock(null);
           setAlignment(null);
           setLenses(null);
           setTranscript(null);
           setAnalysisStatus("Analysis failed.");
+          setLastResponse(null);
         } finally {
           setIsLoading(false);
         }
@@ -351,17 +406,14 @@ export const MirrorApp: React.FC = () => {
       timeoutRef.current = window.setTimeout(() => {
         stopRecording();
       }, MAX_RECORDING_MS);
-    } catch (err) {
+    } catch {
       setError("Microphone or camera access was denied.");
     }
   };
 
   const toggleRecording = (mode: "audio" | "video") => {
-    if (recordingMode === mode) {
-      stopRecording();
-    } else {
-      startRecording(mode);
-    }
+    if (recordingMode === mode) stopRecording();
+    else startRecording(mode);
   };
 
   const formatRecordingTime = (totalSeconds: number) => {
@@ -390,8 +442,13 @@ export const MirrorApp: React.FC = () => {
       "",
       "## IDS",
       idsBlock
-        ? `Identify: ${idsBlock.identify}\nDefine: ${idsBlock.define}\nSuggest:\n- ${idsBlock.suggest.join("\n- ")}`
-        : "(none)"
+        ? `Identify: ${idsBlock.identify}\nDefine: ${idsBlock.define}\nSuggest:\n- ${(idsBlock.suggest ?? []).join(
+            "\n- "
+          )}`
+        : "(none)",
+      "",
+      "## Raw Response",
+      lastResponse ? "```json\n" + JSON.stringify(lastResponse, null, 2) + "\n```" : "(none)",
     ];
 
     const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
@@ -411,7 +468,15 @@ export const MirrorApp: React.FC = () => {
     setTranscript(null);
     setError(null);
     setAnalysisStatus(null);
+    setReportHistory([]);
+    setReportType("single");
+    setLastResponse(null);
   };
+
+  const reportCapabilityNote =
+    lastResponse && !hasReport
+      ? "Report mode is waiting on Linq-style ids fields (peerWeights/logic/emotion/etc). Showing IDS + raw payload."
+      : null;
 
   return (
     <div className={styles.container}>
@@ -440,8 +505,8 @@ export const MirrorApp: React.FC = () => {
               {transcript
                 ? transcript
                 : reflection
-                  ? reflection
-                  : "Transcript will appear here when audio capture is enabled."}
+                ? reflection
+                : "Transcript will appear here when audio capture is enabled."}
             </p>
             {recordingMode && (
               <p className="mirror-recording">
@@ -455,18 +520,42 @@ export const MirrorApp: React.FC = () => {
               <h2 className="mirror-card-title">Reflection mirror</h2>
               <span className="mirror-badge">Output</span>
             </div>
+
             <div className="mirror-output">
               {analysisStatus && <p className="mirror-status-line">{analysisStatus}</p>}
+
+              {reportCapabilityNote && (
+                <p className="mirror-muted">{reportCapabilityNote}</p>
+              )}
+
+              {hasReport && (
+                <div className="mirror-report-selector">
+                  <span className="mirror-insight-label">Report mode</span>
+                  <select
+                    value={reportType}
+                    onChange={(e) => setReportType(e.target.value as ReportType)}
+                    className="mirror-report-dropdown"
+                    title="Select report mode"
+                  >
+                    <option value="single">Single</option>
+                    <option value="cumulative">Cumulative (last 5)</option>
+                    <option value="aggregate">Aggregate (all)</option>
+                  </select>
+                </div>
+              )}
+
               {!hasOutput && (
                 <p className="mirror-muted">
                   Reflection output will render here after initiation.
                 </p>
               )}
+
               {alignment && (
                 <p className="mirror-insight-alignment">
                   {formatAlignment(alignment, emotionalValue) ?? alignment}
                 </p>
               )}
+
               {(typeof emotionalValue === "number" || hasIds) && (
                 <div className="mirror-emotion-card">
                   <p className="mirror-insight-label">Peer emotional state</p>
@@ -486,13 +575,16 @@ export const MirrorApp: React.FC = () => {
                     </div>
                   )}
                   {typeof emotionalValue === "number" && (
-                    <p className="mirror-emotion-note">
-                      Emotional lens meter (telemetry).
-                    </p>
+                    <p className="mirror-emotion-note">Emotional lens meter (telemetry).</p>
                   )}
                 </div>
               )}
-              {hasIds ? (
+
+              {hasReport ? (
+                <div className="mirror-ids-block mirror-report-output">
+                  <ReportOutput history={reportHistory} reportType={reportType} />
+                </div>
+              ) : hasIds ? (
                 <div className="mirror-ids-block">
                   <div className="mirror-insight-grid">
                     <div>
@@ -505,12 +597,30 @@ export const MirrorApp: React.FC = () => {
                     </div>
                   </div>
                   <ul className="mirror-insight-list">
-                    {idsBlock.suggest.map((s: string, i: number) => (
+                    {(idsBlock.suggest ?? []).map((s: string, i: number) => (
                       <li key={i}>{s}</li>
                     ))}
                   </ul>
                 </div>
               ) : null}
+
+              {/* ✅ Debug panel: shows exactly what the server returned */}
+              {lastResponse && (
+                <div className="mirror-ids-block" style={{ marginTop: 16 }}>
+                  <p className="mirror-insight-label">Raw response (debug)</p>
+                  <pre
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      fontSize: 12,
+                      opacity: 0.9,
+                      margin: 0,
+                    }}
+                  >
+                    {JSON.stringify(lastResponse, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
           </div>
 
@@ -532,12 +642,14 @@ export const MirrorApp: React.FC = () => {
               <h2 className="mirror-card-title">Reflection chamber chat</h2>
               <span className="mirror-badge">Input</span>
             </div>
-            <textarea 
+
+            <textarea
               value={reflection}
               onChange={(e) => setReflection(e.target.value)}
               placeholder="Begin your reflection..."
               className={styles.journal}
             />
+
             <div className="mirror-chat-actions">
               <button
                 type="button"
@@ -547,32 +659,29 @@ export const MirrorApp: React.FC = () => {
               >
                 {isLoading ? "Inhaling..." : "Initiate"}
               </button>
+
               <button type="button" className="mirror-ghost" onClick={handleClear}>
                 Clear
               </button>
+
               <button
                 type="button"
                 className="mirror-ghost"
                 onClick={() => toggleRecording("audio")}
                 disabled={isLoading || (recordingMode !== null && recordingMode !== "audio")}
               >
-                <span>
-                  {recordingMode === "audio" ? "Stop audio" : "Audio record"}
-                </span>
+                <span>{recordingMode === "audio" ? "Stop audio" : "Audio record"}</span>
               </button>
+
               <button
                 type="button"
                 className="mirror-ghost"
                 onClick={() => toggleRecording("video")}
                 disabled={isLoading || (recordingMode !== null && recordingMode !== "video")}
               >
-                <span>
-                  {recordingMode === "video" ? "Stop video" : "Video record"}
-                </span>
+                <span>{recordingMode === "video" ? "Stop video" : "Video record"}</span>
               </button>
-              <button type="button" className="mirror-ghost" onClick={handleClear}>
-                Clear chat window
-              </button>
+
               <button
                 type="button"
                 className="mirror-ghost"
@@ -582,6 +691,7 @@ export const MirrorApp: React.FC = () => {
                 Download report
               </button>
             </div>
+
             {error && <div className="mirror-app-error">{error}</div>}
           </div>
 
@@ -593,5 +703,4 @@ export const MirrorApp: React.FC = () => {
       </div>
     </div>
   );
-}
-
+};
