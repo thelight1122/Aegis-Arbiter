@@ -7,11 +7,12 @@ export class SuggestionEngine {
      * This is option-framed and canon-bound (AXIOM_1..AXIOM_6 only).
      */
     static generate(current, snapshot) {
-        if (snapshot.resonance_status === "aligned")
-            return null;
         const tags = uniqueStrings(snapshot.suggested_axiom_tags ?? []);
         const tagText = tags.length > 0 ? tags.join(", ") : "uncertain";
-        const identify = `Observed alignment shift: ${snapshot.resonance_status}. ` +
+        const identifyPrefix = snapshot.resonance_status === "aligned"
+            ? "Observed alignment: stable"
+            : `Observed alignment shift: ${snapshot.resonance_status}`;
+        const identify = `${identifyPrefix}. ` +
             `Delta=${snapshot.equilibrium_delta.toFixed(2)} ` +
             `(drift=${snapshot.drivers.drift_risk.toFixed(2)}, ` +
             `spine=${snapshot.drivers.spine_coherence.toFixed(2)}, ` +
@@ -20,9 +21,13 @@ export class SuggestionEngine {
             ".";
         // Keep DEFINE grounded and avoid invented canon.
         // We can reference the locked axioms by name if you’re using those tag strings.
-        const define = `This pattern suggests reduced equilibrium relative to the recent spine (AXIOM_1_BALANCE). ` +
-            `When delta rises, perspective can narrow (AXIOM_2_EXTREMES) and forceful phrasing can increase resistance (AXIOM_3_FORCE). ` +
-            `Current tags: ${tagText}.`;
+        const define = snapshot.resonance_status === "aligned"
+            ? `The peer signal is tracking with the recent spine (AXIOM_1_BALANCE). ` +
+                `Maintain awareness (AXIOM_5_AWARENESS) and choice framing (AXIOM_6_CHOICE) to keep flow stable. ` +
+                `Current tags: ${tagText}.`
+            : `This pattern suggests reduced equilibrium relative to the recent spine (AXIOM_1_BALANCE). ` +
+                `When delta rises, perspective can narrow (AXIOM_2_EXTREMES) and forceful phrasing can increase resistance (AXIOM_3_FORCE). ` +
+                `Current tags: ${tagText}.`;
         const suggest = [
             // Option framing, non-coercive.
             "Option: Restate your intent in one sentence, then add one neutral observation (AXIOM_5_AWARENESS).",
@@ -32,4 +37,3 @@ export class SuggestionEngine {
         return { identify, define, suggest };
     }
 }
-//# sourceMappingURL=suggestionEngine.js.map

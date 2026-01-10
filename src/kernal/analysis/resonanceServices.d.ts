@@ -39,4 +39,5 @@ export declare class ResonanceService {
      * @returns {AlignmentSnapshot} - The alignment snapshot.
      */
     getAlignmentSnapshot(sessionId: string, ptTensor: AegisTensor): AlignmentSnapshot;
+    private hashToUnit;
 }
