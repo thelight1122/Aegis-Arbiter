@@ -1,4 +1,4 @@
-import type { IDSReply } from "../../kernal/analysis/suggestionEngine.js";
+import type { IDSReply } from "../../kernel/analysis/suggestionEngine.js";
 export interface ReviewResult {
     is_aligned: boolean;
     canonical_violations: string[];

@@ -1,4 +1,4 @@
-import type { AegisTensor } from "../../../kernal/tensor/types/tensor.js";
+import type { AegisTensor } from "../../../kernel/tensor/types/tensor.js";
 export interface IntegritySnapshot {
     phase_lock_gap: number;
     dissonance_markers: string[];

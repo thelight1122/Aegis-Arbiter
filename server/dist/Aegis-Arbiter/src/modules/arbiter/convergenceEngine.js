@@ -1,4 +1,4 @@
-import { LensMonitor } from "../../kernal/analysis/lensMonitor.js";
+import { LensMonitor } from "../../kernel/analysis/lensMonitor.js";
 /**
  * The ConvergenceEngine identifies the path to Relational Equilibrium.
  * It fulfills the 'Conflict Negotiation' requirement.

@@ -1,0 +1,27 @@
+{
+    "name": "aegis-arbiter-ui",
+    "private": true,
+    "version": "0.1.0",
+    "type": "module",
+    "scripts": {
+        "dev": "npx vite",
+        "build": "npm-run-all build-ts build-vite",
+        "build-ts": "npx tsc",
+        "build-vite": "npx vite build",
+        "preview": "npx vite preview"
+    },
+    "dependencies": {
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1"
+    },
+    "devDependencies": {
+        "@types/react": "^18.3.12",
+        "@types/react-dom": "^18.3.1",
+        "@types/better-sqlite3": "^7.6.13",
+        "@vitejs/plugin-react": "^4.3.3",
+        "better-sqlite3": "^11.5.0",
+        "js-tiktoken": "^1.0.15",
+        "typescript": "~5.6.2",
+        "vite": "^5.4.10"
+    }
+}

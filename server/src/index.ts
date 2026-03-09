@@ -9,12 +9,12 @@ import { fileURLToPath } from "node:url";
 import { runAegisCli } from "./cliRunner.js";
 import { ledgerMiddleware } from "./ledger.js";
 
-import { ArbiterOrchestrator } from "../../src/kernal/orchestrator.js";
-import { TensorRepository } from "../../src/kernal/storage/tensorRepository.js";
-import { ResonanceService } from "../../src/kernal/analysis/resonanceServices.js";
-import { MirrorManager } from "../../src/modules/mirror/mirrorManager.js";
-import { SovereigntyProgressService } from "../../src/modules/mirror/progressService.js";
-import { witnessEmitter } from "../../src/witness.js";
+import { ArbiterOrchestrator } from "../../ui/src/kernel/orchestrator.js";
+import { TensorRepository } from "../../ui/src/kernel/storage/tensorRepository.js";
+import { ResonanceService } from "../../ui/src/kernel/analysis/resonanceServices.js";
+import { MirrorManager } from "../../ui/src/modules/mirror/mirrorManager.js";
+import { SovereigntyProgressService } from "../../ui/src/modules/mirror/progressService.js";
+import { witnessEmitter } from "../../ui/src/witness.js";
 
 const app = express();
 
@@ -31,8 +31,8 @@ const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
-// Schema always resolves from repo root: /src/kernal/storage/schema.sql
-const schemaPath = path.join(repoRoot, "src", "kernal", "storage", "schema.sql");
+// Schema always resolves from repo root
+const schemaPath = path.join(repoRoot, "ui", "src", "kernel", "storage", "schema.sql");
 const schemaSql = fs.readFileSync(schemaPath, "utf8");
 db.exec(schemaSql);
 db.exec("CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY);");

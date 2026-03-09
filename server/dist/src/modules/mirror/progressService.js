@@ -1,4 +1,4 @@
-import { TensorRepository } from "../../kernal/storage/tensorRepository.js";
+import { TensorRepository } from "../../kernel/storage/tensorRepository.js";
 /**
  * The SovereigntyProgressService tracks evolutionary trajectory.
  * It fulfills the requirement for a 'Progress Map' (Section XII.3).

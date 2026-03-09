@@ -1,4 +1,4 @@
-import { TensorRepository } from "../../kernal/storage/tensorRepository.js";
+import { TensorRepository } from "../../kernel/storage/tensorRepository.js";
 export interface EvolutionTrend {
     sample_count: number;
     drift_velocity: number;

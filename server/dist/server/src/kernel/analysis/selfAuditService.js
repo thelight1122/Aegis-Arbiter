@@ -1,6 +1,6 @@
-// FILE: server/src/kernal/analysis/selfAuditService.ts
+// FILE: server/src/kernel/analysis/selfAuditService.ts
 import { analyzeText } from "../../analyzeText.js";
-import { TensorFactory } from "../../../../src/kernal/tensor/factory.js";
+import { TensorFactory } from "../../../../ui/src/kernel/tensor/factory.js";
 export function runSelfAudit(input, metadata = {}) {
     const audit = analyzeText(input);
     const findings = (audit?.findings ?? []);

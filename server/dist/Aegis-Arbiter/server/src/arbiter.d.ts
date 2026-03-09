@@ -1,4 +1,4 @@
-import { TensorRepository } from "../../src/kernal/storage/tensorRepository.js";
+import { TensorRepository } from "../../src/kernel/storage/tensorRepository.js";
 /**
  * The Arbiter Controller coordinates two sovereign systems.
  * It fulfills AXIOM_1_BALANCE.
