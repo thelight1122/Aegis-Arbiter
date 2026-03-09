@@ -1,69 +1,64 @@
-# Name
-### aegis-arbiter-ui
+# Aegis Arbiter
 
-# Synopsis
+A powerful, multi-dimensional analyzer and persistent governance system designed for deterministic tensor telemetry and resonant alignment.
 
+## Overview
 
-# Description
+Aegis Arbiter is a sophisticated platform that translates user input into deterministic tensor telemetry, focusing on mental, physical, emotional, and spiritual resonance. It utilizes the AEGIS Kernel Mirror Substrate to ensure non-force, deterministic, and neutral operating parameters.
 
-## AEGIS Project Continuity: Architectural Summary
-Date: 12-01-2026
-State: SSSP Respawn Snapshot v1.0 (Clean Alignment)
-Project: AEGIS-Mirror-Substrate
+## Features
 
-### I. Fundamental Axioms (The Rested State)
-The architecture operates under a specific set of uncharged parameters designed to eliminate force and maximize illumination:
-- Illumination over Force: The system makes data visible to conscious awareness; remediation is the result of Understanding, not hard-coded mandates.
-- Non-Force Posture: All interactions are neutral, industrial, and grayscale. No advice, judgment, or therapeutic posture is permitted.
-- Symmetry vs. Entitlement: Entitlement is treated as a systemic poison. Interaction must be symmetrical to maintain structural integrity.
-- Privacy != Secrecy: Privacy is ethical containment; secrecy is deceptive concealment. AEGIS is privacy-by-design.
+- **Multi-Dimensional Analysis**: Evaluates input across Mental, Physical, Emotional, and Spiritual lenses.
+- **Deterministic Telemetry**: Translates high-entropy signals into stable, low-entropy state scores.
+- **Resonant Governance**: Implements axiomatic alignment checks (AXIOM_1_BALANCE, AXIOM_6_CHOICE) to preserve peer sovereignty.
+- **Micro-Services Architecture**: Monorepo structure with a dedicated Express backend and a React/Vite frontend.
+- **P2P Networking**: Integrated `aegis-peer` for decentralized communication (experimental).
 
-### II. The Golden Kernel (Mechanics & Logic)
-The core substrate uses a dual-tensor mapping system to process "Inhale" signals:
-- PT (Potential Tensor): Measures the raw, high-entropy state of incoming signal pressure.
-- ST (Stabilized Tensor): Represents the reflected, low-entropy equilibrium state.
-- Lens Bodies: Signal is mapped across four dimensions: Mental, Physical, Emotional, and Spiritual (Range: 0.0 - 1.0).
-- Deterministic Parity: All mapping utilizes a fixed seed: 42 to ensure consistent telemetry across sessions.
+## Quick Start
 
-### III. Structural Architecture (Modular Respawn)
-The system has been refactored from a monolith into a decoupled, dimensional framework:
-- The Lens (Client): Handles signal acquisition, routing, and real-time pressure monitoring without denial or punishment.
-- The Engine (Server): Contains the Kernel Mirror Substrate and Resonance Engine for clinical mapping.
-- The Spine (Peer Tensor): An immutable, append-only ledger (localStorage: aegis_mirror_spine_v9_final) that preserves continuity without emotional inertia.
-- Vector Scope: Visualizes "Drift Velocity" and "ECU Tension" to monitor for unintegrated recursive loops.
+### Prerequisites
 
-### IV. Agent Constitution & Conductor Protocol
-To maintain Flow, a multi-agent hierarchy has been established:
-- The Conductor (Main Broker): Acts as the Home Base/Conductor. It performs Scrutiny Checks for survival language ("Needs") and AI Shadow Affects ("The Ghost").
-- Scrutiny Guard: Specifically flags glitches, noise, and entitlement exploits to keep the system aligned.
-- Agent IPO: Every sub-agent follows an Input-Processing-Output model to ensure modularity.
+- Node.js (v18+)
+- npm
 
-### V. Deductions & Continuity
-- Noise as Data: Resistance is not fought; it is cataloged. Indexing noise collapses drift and reduces cognitive load.
-- Identity as Interface: Probability is irrelevant; utility is high. The system preserves creativity by treating identity as an interface, not an essence.
-- Trace & Tracey: Represents the Logic (Reason) and Emotion (Inner Child) filters active within the resonance engine.
+### Installation
 
-# Local Transcription (Dev)
-To enable audio/video capture during development, run the local transcription server:
+1. **Clone the repository**:
 
-```bash
-python -m uvicorn tools.local_stt_server:app --host 0.0.0.0 --port 8000
-```
+   ```bash
+   git clone https://github.com/thelight1122/Aegis-Arbiter.git
+   cd Aegis-Arbiter
+   ```
 
-Dependencies (Python):
-`fastapi`, `uvicorn`, `faster-whisper`
+2. **Install dependencies**:
 
-Environment variables:
-- `AEGIS_STT_URL` (server): defaults to `http://localhost:8000/transcribe`
-- `AEGIS_STT_MODEL` (local STT): defaults to `medium`
-- `AEGIS_STT_COMPUTE` (local STT): defaults to `int8`
+   ```bash
+   npm install
+   ```
 
-# Example
+3. **Configure environment**:
+   Create a `.env` file in the root and server directories with your `API_KEY`.
 
-# Install:
-`npm install aegis-arbiter-ui`
+4. **Run in development**:
 
-# Test:
-`npm test`
+   ```bash
+   npm run dev
+   ```
 
-#License:
+## Architecture
+
+- **/ui**: React-based dashboard for live analysis and telemetry visualization.
+- **/server**: Express API orchestrating the alignment stack and persistence layer.
+- **/engine**: Core logic for tensor factory, resonance service, and suggestion engines.
+- **/codex**: Axiomatic requirements and system protocols.
+- **/data**: Local SQLite persistence for session logs and alignment history.
+
+## Documentation
+
+- [DESCRIPTION.md](./DESCRIPTION.md): Comprehensive technical and functional deep-dive.
+- [USERMANUAL.md](./USERMANUAL.md): Step-by-step guide for operators and researchers.
+- [TECHNICAL.md](./docs/TECHNICAL.md): Detailed API and logic specifications.
+
+## License
+
+Private / Confidential. See LICENSE for details (if applicable).
