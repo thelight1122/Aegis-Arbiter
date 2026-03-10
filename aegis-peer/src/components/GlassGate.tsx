@@ -1,10 +1,7 @@
-// /ui/src/components/GlassGate.tsx
+// /aegis-peer/src/components/GlassGate.tsx
 import React, { useEffect, useState } from "react";
 import "./GlassGate.css";
-// /ui/src/components/GlassGate.tsx
 import { streamUrl } from "../lib/apiBase";
-
-const es = new EventSource(streamUrl("/api/witness"));
 
 interface Telemetry {
   flow_energy: number;
@@ -17,12 +14,14 @@ export const GlassGate: React.FC = () => {
   const [data, setData] = useState<Telemetry | null>(null);
 
   useEffect(() => {
-    // Bypass Vite proxy for SSE (more stable on Windows)
-    const es = new EventSource("http://localhost:8787/api/witness");
+    const es = new EventSource(streamUrl("/api/witness"));
 
     es.onmessage = (event) => {
-      const payload = JSON.parse(event.data) as Telemetry;
-      setData(payload);
+      try {
+        setData(JSON.parse(event.data) as Telemetry);
+      } catch {
+        // malformed SSE frame — ignore
+      }
     };
 
     return () => es.close();

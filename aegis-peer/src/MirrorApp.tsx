@@ -1,17 +1,25 @@
-// FILE: ui/src/MirrorApp.tsx
-
+// /aegis-peer/src/MirrorApp.tsx
 import React, { useRef, useState } from "react";
 import "./MirrorApp.css";
 import { GlassGate } from "./components/GlassGate";
 import { TrajectoryMap } from "./components/TrajectoryMap";
 import { SpineExplorer } from "./components/SpineExplorer";
 import { apiUrl } from "./lib/apiBase";
-
-// ✅ Linq-style report renderer
 import ReportOutput, {
   type AegisEngineResult,
   type ReportType,
 } from "./components/ReportOutput";
+import {
+  describeLevel,
+  levelTone,
+  normalizeLenses,
+  formatAlignment,
+  isReportCapableIds,
+  formatRecordingTime,
+  type LensValues,
+} from "./lib/mirrorUtils";
+import { useWaveform } from "./hooks/useWaveform";
+import { useMediaRecorder } from "./hooks/useMediaRecorder";
 
 const styles = {
   container: "mirror-app-container",
@@ -20,231 +28,72 @@ const styles = {
 };
 
 /**
- * MirrorApp provides the full-featured interface for self-reflection.
- * It fulfills AXIOM_5_AWARENESS.
+ * MirrorApp provides the full-featured peer interface for self-reflection.
+ * Fulfills AXIOM_5_AWARENESS.
  */
 export const MirrorApp: React.FC = () => {
   const [reflection, setReflection] = useState("");
   const [transcript, setTranscript] = useState<string | null>(null);
-  const [idsBlock, setIdsBlock] = useState<any>(null);
+  const [idsBlock, setIdsBlock] = useState<Record<string, unknown> | null>(null);
   const [alignment, setAlignment] = useState<string | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<string | null>(null);
-  const [lenses, setLenses] = useState<{
-    physical?: number;
-    emotional?: number;
-    mental?: number;
-    spiritual?: number;
-  } | null>(null);
+  const [lenses, setLenses] = useState<LensValues | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId] = useState(`mirror_${Date.now()}`);
-  const [recordingMode, setRecordingMode] = useState<"audio" | "video" | null>(
-    null
-  );
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-
-  // ✅ New: Linq-style report state
   const [reportHistory, setReportHistory] = useState<AegisEngineResult[]>([]);
   const [reportType, setReportType] = useState<ReportType>("single");
+  const [lastResponse, setLastResponse] = useState<unknown>(null);
 
-  // ✅ New: Debug — store last raw response
-  const [lastResponse, setLastResponse] = useState<any>(null);
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const animationRef = useRef<number | null>(null);
-  const timeoutRef = useRef<number | null>(null);
-  const timerRef = useRef<number | null>(null);
+  const waveform = useWaveform(canvasRef);
 
-  const MAX_RECORDING_MS = 3 * 60 * 1000;
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
-  const describeLevel = (value?: number) => {
-    if (typeof value !== "number") return "Unknown";
-    if (value >= 0.75) return "High";
-    if (value >= 0.45) return "Steady";
-    if (value >= 0.25) return "Low";
-    return "Depleted";
-  };
-
-  const levelTone = (value?: number) => {
-    if (typeof value !== "number") return "unknown";
-    if (value >= 0.75) return "strong";
-    if (value >= 0.45) return "steady";
-    if (value >= 0.25) return "low";
-    return "critical";
-  };
-
-  const normalizeLenses = (payload: any) => {
-    if (!payload || typeof payload !== "object") return null;
-    const { physical, emotional, mental, spiritual } = payload as {
-      physical?: number;
-      emotional?: number;
-      mental?: number;
-      spiritual?: number;
-    };
-    const hasValue = [physical, emotional, mental, spiritual].some(
-      (value) => typeof value === "number"
-    );
-    return hasValue ? { physical, emotional, mental, spiritual } : null;
-  };
-
-  const formatAlignment = (raw: string | null, emotional?: number) => {
-    if (!raw) return null;
-    const match = raw.match(/Delta=([0-9.]+)/i);
-    const delta = match ? Number.parseFloat(match[1]) : null;
-    const emotionScore = typeof emotional === "number" ? emotional : null;
-
-    if (delta !== null && !Number.isNaN(delta)) {
-      if (delta >= 0.8) {
-        return "Peer emotional state shows acute tension and destabilization. Focus on grounding and safety.";
-      }
-      if (delta >= 0.55) {
-        return "Peer emotional state shows elevated strain. Provide calm, specific support.";
-      }
-      if (delta >= 0.3) {
-        return "Peer emotional state shows mild friction. Invite reflection and gentle pacing.";
-      }
-      return "Peer emotional state appears steady. Encourage continued clarity and choice.";
-    }
-
-    if (emotionScore !== null) {
-      if (emotionScore >= 0.75) {
-        return "Peer emotional state is energized and expressive. Channel toward constructive action.";
-      }
-      if (emotionScore >= 0.45) {
-        return "Peer emotional state is stable with manageable tension. Maintain steady support.";
-      }
-      if (emotionScore >= 0.25) {
-        return "Peer emotional state is low and guarded. Offer reassurance and space.";
-      }
-      return "Peer emotional state is depleted. Prioritize rest and emotional safety.";
-    }
-
-    return raw;
-  };
-
-  // ✅ Detect whether ids payload supports Linq-style report rendering
-  const isReportCapableIds = (ids: any): ids is AegisEngineResult => {
-    if (!ids || typeof ids !== "object") return false;
-    const peerWeightsOk =
-      Array.isArray(ids.peerWeights) &&
-      ids.peerWeights.length === 7 &&
-      ids.peerWeights.every((n: any) => typeof n === "number");
-    return (
-      peerWeightsOk &&
-      typeof ids.logic === "number" &&
-      typeof ids.emotion === "number" &&
-      typeof ids.moodType === "string" &&
-      typeof ids.keyAxiom === "number" &&
-      typeof ids.peerSummary === "string" &&
-      typeof ids.suggestText === "string" &&
-      typeof ids.isFractured === "boolean"
-    );
-  };
-
-  const applyMirrorResponse = (data: any, fallbackTranscript?: string) => {
+  const applyMirrorResponse = (data: Record<string, unknown>, fallbackTranscript?: string) => {
     setLastResponse(data);
-
-    const nextTranscript =
-      (data?.transcript ?? fallbackTranscript ?? "").trim() || null;
-
-    setIdsBlock(data?.ids ?? null);
-    setAlignment(data?.alignment ?? null);
-
+    setIdsBlock((data.ids as Record<string, unknown>) ?? null);
+    setAlignment((data.alignment as string) ?? null);
     const nextLenses =
-      normalizeLenses(data?.lenses) ?? normalizeLenses(data?.telemetry?.lenses);
+      normalizeLenses(data.lenses) ?? normalizeLenses((data.telemetry as any)?.lenses);
     setLenses(nextLenses);
-
+    const nextTranscript = ((data.transcript as string) ?? fallbackTranscript ?? "").trim() || null;
     setTranscript(nextTranscript);
     setAnalysisStatus("Analysis complete.");
 
-    // ✅ If the API returns the richer Linq-style shape, capture it into report history
-    if (isReportCapableIds(data?.ids)) {
-      const enriched: AegisEngineResult = {
-        ...data.ids,
-        vector: nextTranscript ?? fallbackTranscript ?? "",
-      };
-      setReportHistory((prev) => [...prev, enriched]);
+    if (isReportCapableIds(data.ids)) {
+      setReportHistory((prev) => [
+        ...prev,
+        { ...(data.ids as AegisEngineResult), vector: nextTranscript ?? fallbackTranscript ?? "" },
+      ]);
     }
   };
 
-  const startWaveform = (stream: MediaStream) => {
-    if (!canvasRef.current) return;
-    const AudioContextConstructor =
-      window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextConstructor) return;
-
-    const audioContext = new AudioContextConstructor();
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 2048;
-
-    const source = audioContext.createMediaStreamSource(stream);
-    source.connect(analyser);
-
-    audioContextRef.current = audioContext;
-    analyserRef.current = analyser;
-    sourceRef.current = source;
-
-    const canvas = canvasRef.current;
-    const canvasCtx = canvas.getContext("2d");
-    if (!canvasCtx) return;
-
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    const draw = () => {
-      if (!canvasRef.current || !analyserRef.current) return;
-      analyserRef.current.getByteTimeDomainData(dataArray);
-
-      canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-      canvasCtx.lineWidth = 2;
-      canvasCtx.strokeStyle = "rgba(244, 200, 200, 0.9)";
-      canvasCtx.beginPath();
-
-      const sliceWidth = canvas.width / bufferLength;
-      let x = 0;
-
-      for (let i = 0; i < bufferLength; i += 1) {
-        const v = dataArray[i] / 128.0;
-        const y = (v * canvas.height) / 2;
-
-        if (i === 0) canvasCtx.moveTo(x, y);
-        else canvasCtx.lineTo(x, y);
-
-        x += sliceWidth;
-      }
-
-      canvasCtx.lineTo(canvas.width, canvas.height / 2);
-      canvasCtx.stroke();
-
-      animationRef.current = window.requestAnimationFrame(draw);
-    };
-
-    draw();
+  const applyMirrorError = (msg: string) => {
+    setError(msg);
+    setIdsBlock(null);
+    setAlignment(null);
+    setLenses(null);
+    setTranscript(null);
+    setAnalysisStatus("Analysis failed.");
   };
 
-  const stopWaveform = () => {
-    if (animationRef.current) {
-      window.cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-    if (sourceRef.current) {
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
-    }
-    if (analyserRef.current) {
-      analyserRef.current.disconnect();
-      analyserRef.current = null;
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-  };
+  // ── Media recorder ─────────────────────────────────────────────────────────
+
+  const recorder = useMediaRecorder({
+    sessionId,
+    onStreamReady: waveform.start,
+    onRecordingStopped: waveform.stop,
+    onSuccess: (data) => applyMirrorResponse(data as Record<string, unknown>),
+    onError: (msg, rawData) => {
+      applyMirrorError(msg);
+      setLastResponse(rawData ?? null);
+    },
+    onLoadingChange: setIsLoading,
+    onStatusChange: setAnalysisStatus,
+  });
+
+  // ── Text submission ─────────────────────────────────────────────────────────
 
   const handleInhale = async () => {
     const trimmed = reflection.trim();
@@ -264,201 +113,21 @@ export const MirrorApp: React.FC = () => {
       const data = await res.json();
 
       if (!res.ok || data?.ok === false) {
-        setError(data?.error ?? "Mirror reflection failed.");
-        setIdsBlock(null);
-        setAlignment(null);
-        setLenses(null);
-        setTranscript(null);
-        setAnalysisStatus("Analysis failed.");
+        applyMirrorError(data?.error ?? "Mirror reflection failed.");
         setLastResponse(data);
         return;
       }
 
       applyMirrorResponse(data, trimmed);
     } catch {
-      setError("Unable to reach the mirror service.");
-      setIdsBlock(null);
-      setAlignment(null);
-      setLenses(null);
-      setTranscript(null);
-      setAnalysisStatus("Analysis failed.");
+      applyMirrorError("Unable to reach the mirror service.");
       setLastResponse(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const canInhale = reflection.trim().length > 0 && !isLoading;
-  const emotionalValue = lenses?.emotional;
-  const emotionalTone = levelTone(emotionalValue);
-
-  const hasIds =
-    Boolean(idsBlock?.identify) ||
-    Boolean(idsBlock?.define) ||
-    (Array.isArray(idsBlock?.suggest) && idsBlock.suggest.length > 0);
-
-  const hasReport = reportHistory.length > 0;
-  const hasOutput = Boolean(idsBlock || alignment || lenses || analysisStatus || hasReport);
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
-  };
-
-  const startRecording = async (mode: "audio" | "video") => {
-    if (recordingMode || isLoading) return;
-    setError(null);
-    setAnalysisStatus(null);
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError("Recording is not supported in this browser.");
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: mode === "video",
-      });
-
-      const preferredType = mode === "video" ? "video/webm" : "audio/webm";
-      const options = MediaRecorder.isTypeSupported(preferredType)
-        ? { mimeType: preferredType }
-        : undefined;
-
-      const recorder = new MediaRecorder(stream, options);
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) chunksRef.current.push(event.data);
-      };
-
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        stopWaveform();
-        if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
-        if (timerRef.current) window.clearInterval(timerRef.current);
-
-        const recordedChunks = chunksRef.current;
-        chunksRef.current = [];
-        setRecordingMode(null);
-        setRecordingSeconds(0);
-
-        if (recordedChunks.length === 0) {
-          setError("No recording data captured.");
-          return;
-        }
-
-        const blob = new Blob(recordedChunks, { type: recorder.mimeType });
-        setIsLoading(true);
-        setError(null);
-        setAnalysisStatus("Transcribing and analyzing...");
-
-        try {
-          const res = await fetch(
-            apiUrl(`/mirror/reflect-media?sessionId=${sessionId}`),
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": blob.type || "application/octet-stream",
-              },
-              body: blob,
-            }
-          );
-          const data = await res.json();
-
-          if (!res.ok || data?.ok === false) {
-            setError(data?.error ?? "Mirror reflection failed.");
-            setIdsBlock(null);
-            setAlignment(null);
-            setLenses(null);
-            setTranscript(null);
-            setAnalysisStatus("Analysis failed.");
-            setLastResponse(data);
-            return;
-          }
-
-          applyMirrorResponse(data);
-        } catch {
-          setError("Unable to reach the mirror service.");
-          setIdsBlock(null);
-          setAlignment(null);
-          setLenses(null);
-          setTranscript(null);
-          setAnalysisStatus("Analysis failed.");
-          setLastResponse(null);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      setRecordingMode(mode);
-      setRecordingSeconds(0);
-      startWaveform(stream);
-
-      timerRef.current = window.setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
-      }, 1000);
-
-      timeoutRef.current = window.setTimeout(() => {
-        stopRecording();
-      }, MAX_RECORDING_MS);
-    } catch {
-      setError("Microphone or camera access was denied.");
-    }
-  };
-
-  const toggleRecording = (mode: "audio" | "video") => {
-    if (recordingMode === mode) stopRecording();
-    else startRecording(mode);
-  };
-
-  const formatRecordingTime = (totalSeconds: number) => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  };
-
-  const handleDownloadReport = () => {
-    const lines = [
-      "# Mirror Reflect Connect Report",
-      `Session: ${sessionId}`,
-      `Generated: ${new Date().toISOString()}`,
-      analysisStatus ? `Status: ${analysisStatus}` : "Status: unknown",
-      "",
-      "## Transcript",
-      transcript ?? "(none)",
-      "",
-      "## Alignment",
-      alignment ?? "(none)",
-      "",
-      "## Emotional State",
-      typeof emotionalValue === "number"
-        ? `${Math.round(emotionalValue * 100)}% (${describeLevel(emotionalValue)})`
-        : "(none)",
-      "",
-      "## IDS",
-      idsBlock
-        ? `Identify: ${idsBlock.identify}\nDefine: ${idsBlock.define}\nSuggest:\n- ${(idsBlock.suggest ?? []).join(
-            "\n- "
-          )}`
-        : "(none)",
-      "",
-      "## Raw Response",
-      lastResponse ? "```json\n" + JSON.stringify(lastResponse, null, 2) + "\n```" : "(none)",
-    ];
-
-    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `mirror-report-${sessionId}.md`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+  // ── UI actions ──────────────────────────────────────────────────────────────
 
   const handleClear = () => {
     setReflection("");
@@ -473,10 +142,64 @@ export const MirrorApp: React.FC = () => {
     setLastResponse(null);
   };
 
+  const handleDownloadReport = () => {
+    const emotionalValue = lenses?.emotional;
+    const lines = [
+      "# Mirror Reflect Connect Report",
+      `Session: ${sessionId}`,
+      `Generated: ${new Date().toISOString()}`,
+      `Status: ${analysisStatus ?? "unknown"}`,
+      "",
+      "## Transcript",
+      transcript ?? "(none)",
+      "",
+      "## Alignment",
+      alignment ?? "(none)",
+      "",
+      "## Emotional State",
+      typeof emotionalValue === "number"
+        ? `${Math.round(emotionalValue * 100)}% (${describeLevel(emotionalValue)})`
+        : "(none)",
+      "",
+      "## IDS",
+      idsBlock
+        ? `Identify: ${idsBlock.identify}\nDefine: ${idsBlock.define}\nSuggest:\n- ${
+            (idsBlock.suggest as string[] ?? []).join("\n- ")
+          }`
+        : "(none)",
+      "",
+      "## Raw Response",
+      lastResponse
+        ? "```json\n" + JSON.stringify(lastResponse, null, 2) + "\n```"
+        : "(none)",
+    ];
+
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `mirror-report-${sessionId}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Derived display values ──────────────────────────────────────────────────
+
+  const emotionalValue = lenses?.emotional;
+  const emotionalTone = levelTone(emotionalValue);
+  const canInhale = reflection.trim().length > 0 && !isLoading;
+  const hasIds =
+    Boolean(idsBlock?.identify) ||
+    Boolean(idsBlock?.define) ||
+    (Array.isArray(idsBlock?.suggest) && (idsBlock.suggest as unknown[]).length > 0);
+  const hasReport = reportHistory.length > 0;
+  const hasOutput = Boolean(idsBlock || alignment || lenses || analysisStatus || hasReport);
   const reportCapabilityNote =
     lastResponse && !hasReport
       ? "Report mode is waiting on Linq-style ids fields (peerWeights/logic/emotion/etc). Showing IDS + raw payload."
       : null;
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className={styles.container}>
@@ -492,25 +215,22 @@ export const MirrorApp: React.FC = () => {
       </header>
 
       <div className="mirror-layout">
+        {/* ── Left column ── */}
         <section className="mirror-column mirror-left">
           <div className="mirror-card mirror-transcript">
             <div className="mirror-card-header">
               <h2 className="mirror-card-title">Audio transcript</h2>
               <span className="mirror-badge">
-                {recordingMode ? `Recording ${recordingMode}` : "Listening"}
+                {recorder.mode ? `Recording ${recorder.mode}` : "Listening"}
               </span>
             </div>
             <canvas className="mirror-waveform" ref={canvasRef} width={520} height={80} />
             <p className="mirror-muted">
-              {transcript
-                ? transcript
-                : reflection
-                ? reflection
-                : "Transcript will appear here when audio capture is enabled."}
+              {transcript ?? reflection || "Transcript will appear here when audio capture is enabled."}
             </p>
-            {recordingMode && (
+            {recorder.mode && (
               <p className="mirror-recording">
-                {formatRecordingTime(recordingSeconds)} / 3:00 max
+                {formatRecordingTime(recorder.seconds)} / 3:00 max
               </p>
             )}
           </div>
@@ -523,10 +243,7 @@ export const MirrorApp: React.FC = () => {
 
             <div className="mirror-output">
               {analysisStatus && <p className="mirror-status-line">{analysisStatus}</p>}
-
-              {reportCapabilityNote && (
-                <p className="mirror-muted">{reportCapabilityNote}</p>
-              )}
+              {reportCapabilityNote && <p className="mirror-muted">{reportCapabilityNote}</p>}
 
               {hasReport && (
                 <div className="mirror-report-selector">
@@ -545,9 +262,7 @@ export const MirrorApp: React.FC = () => {
               )}
 
               {!hasOutput && (
-                <p className="mirror-muted">
-                  Reflection output will render here after initiation.
-                </p>
+                <p className="mirror-muted">Reflection output will render here after initiation.</p>
               )}
 
               {alignment && (
@@ -561,7 +276,7 @@ export const MirrorApp: React.FC = () => {
                   <p className="mirror-insight-label">Peer emotional state</p>
                   <p className="mirror-emotion-summary">
                     {hasIds
-                      ? idsBlock.identify
+                      ? String(idsBlock?.identify)
                       : "Telemetry snapshot only. IDS language not available yet."}
                   </p>
                   {typeof emotionalValue === "number" && (
@@ -589,22 +304,21 @@ export const MirrorApp: React.FC = () => {
                   <div className="mirror-insight-grid">
                     <div>
                       <p className="mirror-insight-label">Identify</p>
-                      <p className="mirror-insight-value">{idsBlock.identify}</p>
+                      <p className="mirror-insight-value">{String(idsBlock?.identify)}</p>
                     </div>
                     <div>
                       <p className="mirror-insight-label">Define</p>
-                      <p className="mirror-insight-value">{idsBlock.define}</p>
+                      <p className="mirror-insight-value">{String(idsBlock?.define)}</p>
                     </div>
                   </div>
                   <ul className="mirror-insight-list">
-                    {(idsBlock.suggest ?? []).map((s: string, i: number) => (
+                    {(idsBlock?.suggest as string[] ?? []).map((s, i) => (
                       <li key={i}>{s}</li>
                     ))}
                   </ul>
                 </div>
               ) : null}
 
-              {/* ✅ Debug panel: shows exactly what the server returned */}
               {lastResponse && (
                 <div className="mirror-ids-block" style={{ marginTop: 16 }}>
                   <p className="mirror-insight-label">Raw response (debug)</p>
@@ -636,6 +350,7 @@ export const MirrorApp: React.FC = () => {
           </div>
         </section>
 
+        {/* ── Right column ── */}
         <aside className="mirror-column mirror-right">
           <div className="mirror-card mirror-chat">
             <div className="mirror-card-header">
@@ -667,19 +382,19 @@ export const MirrorApp: React.FC = () => {
               <button
                 type="button"
                 className="mirror-ghost"
-                onClick={() => toggleRecording("audio")}
-                disabled={isLoading || (recordingMode !== null && recordingMode !== "audio")}
+                onClick={() => recorder.toggle("audio")}
+                disabled={isLoading || (recorder.mode !== null && recorder.mode !== "audio")}
               >
-                <span>{recordingMode === "audio" ? "Stop audio" : "Audio record"}</span>
+                {recorder.mode === "audio" ? "Stop audio" : "Audio record"}
               </button>
 
               <button
                 type="button"
                 className="mirror-ghost"
-                onClick={() => toggleRecording("video")}
-                disabled={isLoading || (recordingMode !== null && recordingMode !== "video")}
+                onClick={() => recorder.toggle("video")}
+                disabled={isLoading || (recorder.mode !== null && recorder.mode !== "video")}
               >
-                <span>{recordingMode === "video" ? "Stop video" : "Video record"}</span>
+                {recorder.mode === "video" ? "Stop video" : "Video record"}
               </button>
 
               <button

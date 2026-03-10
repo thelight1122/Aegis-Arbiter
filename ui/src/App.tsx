@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import ToolsPanel from "./components/ToolsPanel";
 import PeerRoot from "./components/PeerRoot.js";
+import ResultPanel from "./components/ResultPanel.js";
 import { runAegisAnalysis } from "./services/aegisService";
 import type { AegisStatus, AnalysisResult, ToolSettings } from "./types";
 import "./App.css";
@@ -8,38 +9,14 @@ import "./App.css";
 export default function App() {
   const [settings, setSettings] = useState<ToolSettings>({
     mode: "rbc",
-    autoCopyJson: false
+    autoCopyJson: false,
   });
 
   const [promptText, setPromptText] = useState("");
   const [notesText, setNotesText] = useState("");
-
   const [status, setStatus] = useState<AegisStatus>({ ok: true, message: "Booted." });
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [running, setRunning] = useState(false);
-
-  const [showJson, setShowJson] = useState(false);
-
-  const analyzer = (result?.json ?? null) as any;
-
-  const summaryText = result?.summary ?? "";
-  const scoreTotal = analyzer?.score?.total ?? 0;
-  const findingsArr = Array.isArray(analyzer?.findings) ? analyzer.findings : [];
-  const notesArr = Array.isArray(analyzer?.notes) ? analyzer.notes : [];
-  const countsObj = analyzer?.counts ?? {};
-
-  const nonZeroCounts = useMemo(() => {
-    return Object.entries(countsObj).filter(([, v]) => Number(v) > 0);
-  }, [analyzer]);
-
-  const jsonText = useMemo(() => {
-    if (!analyzer) return "";
-    try {
-      return JSON.stringify(analyzer, null, 2);
-    } catch {
-      return String(analyzer);
-    }
-  }, [analyzer]);
 
   async function onRun() {
     setRunning(true);
@@ -68,7 +45,6 @@ export default function App() {
     setPromptText("");
     setNotesText("");
     setResult(null);
-    setShowJson(false);
     setStatus({ ok: true, message: "Cleared." });
   }
 
@@ -135,68 +111,7 @@ export default function App() {
 
               <div className="section">
                 <div className="section-title">Result</div>
-
-                {!result && <div>Run analysis to see results.</div>}
-
-                {result && (
-                  <>
-                    <div className="result-stats">
-                      <div className="result-summary">
-                        <b>Summary:</b> {summaryText || "(none)"}
-                      </div>
-
-                      <div className="result-badges">
-                        <span className="badge">
-                          <b>Score</b>: {scoreTotal}
-                        </span>
-                        <span className="badge">
-                          <b>Findings</b>: {findingsArr.length}
-                        </span>
-                        <span className={`badge ${result.flagged ? "badge-bad" : "badge-good"}`}>
-                          <b>Status</b>: {result.flagged ? "FLAGGED" : "CLEAN"}
-                        </span>
-                      </div>
-
-                      <div className="counts-block">
-                        <div className="counts-title">Non-zero counts</div>
-                        <div className="counts-line">
-                          {nonZeroCounts.length
-                            ? nonZeroCounts.map(([k, v]) => (
-                              <span key={k} className="chip">
-                                {k}: {String(v)}
-                              </span>
-                            ))
-                            : <span className="muted">(none)</span>}
-                        </div>
-                      </div>
-
-                      <div className="notes-block">
-                        <div className="counts-title">Notes</div>
-                        {notesArr.length ? (
-                          <ul className="notes-list">
-                            {notesArr.map((n: string, i: number) => (
-                              <li key={i}>{n}</li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div className="muted">(none)</div>
-                        )}
-                      </div>
-
-                      <div className="json-toggle-row">
-                        <button
-                          type="button"
-                          className="button secondary"
-                          onClick={() => setShowJson((v) => !v)}
-                        >
-                          {showJson ? "Hide JSON" : "Show JSON"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {showJson && <pre className="output-pre">{jsonText}</pre>}
-                  </>
-                )}
+                <ResultPanel result={result} />
               </div>
             </section>
           </div>
