@@ -1,4 +1,4 @@
-import { analyzeText } from "../../analyzeText.js";
+import { analyzeText } from "../../src/analyzeText.js";
 
 export interface IntentAudit {
   is_resonant: boolean;
@@ -20,8 +20,8 @@ export class IntentGatingService {
 
     // Identify markers of coercion or forced binaries (AXIOM_2_EXTREMES)
     const forceMarkers = analysis.findings
-      .filter((f) => f.type === "force_language" || f.type === "urgency_compression" || f.type === "hierarchy_inference")
-      .map((f) => f.evidence);
+      .filter((f: any) => f.type === "force_language" || f.type === "urgency_compression" || f.type === "hierarchy_inference")
+      .map((f: any) => f.evidence);
 
     const pressure = Math.min(forceMarkers.length * 0.25, 1.0);
 

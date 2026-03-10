@@ -1,5 +1,5 @@
-import type { AegisTensor } from "../../kernel/tensor.js";
-import { LensMonitor, type LensStatus } from "../../kernel/analysis/lensMonitor.js";
+import type { AegisTensor } from "../../../kernel/tensor.js";
+import { LensMonitor, type LensStatus } from "../../../kernel/analysis/lensMonitor.js";
 
 export interface ConvergenceSnapshot {
   party_a_status: LensStatus;

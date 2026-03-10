@@ -1,4 +1,4 @@
-import { ArbiterOrchestrator } from "../../kernel/orchestrator.js";
+import { ArbiterOrchestrator } from "../../../kernel/orchestrator.js";
 
 /**
  * The MirrorManager handles 'Deep Resonance' sessions.

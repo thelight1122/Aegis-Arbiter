@@ -1,4 +1,4 @@
-import type { LensStatus } from "../../kernel/analysis/lensMonitor.js";
+import { TensorRepository } from "../../../kernel/storage/tensorRepository.js";
 
 export interface FinancialSnapshot {
   sustainability_index: number; // 0..1

@@ -1,6 +1,6 @@
 // src/kernel/evolution.ts
 
-import type { AegisTensor } from ../tensor.js";
+import type { AegisTensor } from "./tensor.js";
 
 export function evaluatePromotion(tensor: AegisTensor): boolean {
   // Logic derived from Section IX of the Codex

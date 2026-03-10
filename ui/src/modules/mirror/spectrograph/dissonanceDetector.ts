@@ -1,4 +1,5 @@
-import type { AegisTensor } from "../../../kernel/tensor.js";
+import type { AegisTensor } from "../../../../kernel/tensor.js";
+import { ResonanceService } from "../../../../kernel/analysis/resonanceServices.js";
 
 export interface IntegritySnapshot {
   phase_lock_gap: number; // 0..1 (0 = aligned)

@@ -19,7 +19,7 @@
   },
   "include": [
     "src/**/*.ts",
-    "../ui/src/kernel/**/*.ts",
+    "../ui/kernel/**/*.ts",
     "../ui/src/modules/**/*.ts"
   ],
   "exclude": [

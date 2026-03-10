@@ -3,7 +3,7 @@
  * Defines the contract between the CoreEngine and specific Lenses.
  */
 
-import type { AegisTensor } from "../kernel/tensor.js";
+import type { AegisTensor } from "../../kernel/tensor.js";
 
 /**
  * Universal input for any logic evaluation.

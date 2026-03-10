@@ -1,5 +1,5 @@
 import { ILens, LogicInput, LensResult } from "../interfaces.js";
-import { LensMonitor } from "../../kernel/analysis/lensMonitor.js"; // Adjust path as needed
+import { LensMonitor } from "../../../kernel/analysis/lensMonitor.js"; // Adjust path as needed
 
 /**
  * ConvergenceLens

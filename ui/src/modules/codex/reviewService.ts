@@ -1,5 +1,6 @@
 import { analyzeText } from "../../analyzeText.js";
-import type { IDSReply } from "../../kernel/analysis/suggestionEngine.js";
+import { TensorRepository } from "../../../kernel/storage/tensorRepository.js";
+import type { IDSReply } from "../../../kernel/analysis/suggestionEngine.js";
 
 export interface ReviewResult {
   is_aligned: boolean;

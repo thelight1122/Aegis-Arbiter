@@ -6,5 +6,5 @@ export type SelfAuditMetadata = {
 export declare function runSelfAudit(input: string, metadata?: SelfAuditMetadata): {
     readonly ok: true;
     readonly findings_count: number;
-    readonly tensor: import("../../../../ui/src/kernel/tensor.js").AegisTensor;
+    readonly tensor: import("../../../../ui/kernel/tensor.js").AegisTensor;
 };

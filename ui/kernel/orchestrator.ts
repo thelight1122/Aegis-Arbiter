@@ -1,4 +1,4 @@
-import { analyzeText } from "../analyzeText.js";
+import { analyzeText } from "../src/analyzeText.js";
 import { TensorFactory } from "./tensor/factory.js";
 import type { TensorRepository } from "./storage/tensorRepository.js";
 import type { ResonanceService } from "./analysis/resonanceServices.js";
@@ -15,7 +15,7 @@ import { BookcaseService } from "./storage/bookcaseService.js";
 import { AuditBridge } from "./storage/auditBridge.js";
 import { RecoveryService } from "./analysis/recoveryServices.js";
 import { ContextAnchorService } from "./storage/contextAnchor.js";
-import { witnessEmitter } from "../witness.js";
+import { witnessEmitter } from "../src/witness.js";
 import { ResetService } from "./storage/resetServices.js";
 import { IntentGatingService } from "./security/intentGate.js";
 

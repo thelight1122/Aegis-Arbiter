@@ -1,7 +1,7 @@
 // FILE: server/src/kernel/analysis/selfAuditService.ts
 // NodeNext/ESM rule: use .js extensions in relative imports
 
-import { analyzeText } from "../../analyzeText.js";
+import { analyzeText } from "../../src/analyzeText.js";
 import { TensorFactory } from "../tensor/factory.js";
 
 type FindingLike = {

@@ -1,4 +1,5 @@
-Here’s the most complete “minimal” setup I’d ship.
+
+# Here’s the most complete “minimal” setup I’d ship
 
 The Codex environment has 5 layers
 
@@ -12,8 +13,7 @@ Runtime (what executes)
 
 Evidence (what happened)
 
-If those are separated cleanly, you get a system that can grow without drifting 
-into mythology or bureaucracy.
+If those are separated cleanly, you get a system that can grow without drifting into mythology or bureaucracy.
 
 Recommended repo layout
 
@@ -206,13 +206,13 @@ A CLI as the “truth interface” (UI is optional; CLI is deterministic)
 
 Snapshot validator command: codex validate that checks:
 
-schema conformance
+- schema conformance
 
-append-only constraints
+- append-only constraints
 
-canonical file naming
+- canonical file naming
 
-forbidden words/modes if you want “lint mode” purity
+- forbidden words/modes if you want “lint mode” purity
 
 What I would implement first (order matters)
 
@@ -230,13 +230,6 @@ sssp create (creates snapshot file + hashes previous)
 
 tensor add (writes an agreement/constraint)
 
-replay <run> (reconstructs summary from evidence)
+replay run (reconstructs summary from evidence)
 
 A tiny UI only after the CLI is rock solid
-
-That gets you “complete enough” without fake completeness.
-
-One extra piece I strongly recommend 🧲
-
-A “Codex Gate” file: CODEX_LOCKS.md listing what is immutable and why.
-Because later-you (or collaborators) will try to “just tweak” canon wording, and you’ll want the system itself to calmly say: that’s a different branch, not a rewrite.

@@ -1,5 +1,5 @@
 import { ILens, LogicInput, LensResult, IdentityMatrix } from "../interfaces.js";
-import { LensMonitor } from "../../kernel/analysis/lensMonitor.js";
+import { LensMonitor } from "../../../kernel/analysis/lensMonitor.js";
 
 /**
  * IdentityLens

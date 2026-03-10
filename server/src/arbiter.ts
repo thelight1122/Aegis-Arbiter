@@ -1,4 +1,4 @@
-import { TensorRepository } from "../../ui/src/kernel/storage/tensorRepository.js";
+import { TensorRepository } from "../../ui/kernel/storage/tensorRepository.js";
 import { ConvergenceEngine } from "../../ui/src/modules/arbiter/convergenceEngine.js";
 
 /**
