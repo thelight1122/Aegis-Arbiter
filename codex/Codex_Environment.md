@@ -1,7 +1,5 @@
 
-# Here’s the most complete “minimal” setup I’d ship
-
-The Codex environment has 5 layers
+# The Codex environment has 5 layers
 
 Canon (what is locked)
 
